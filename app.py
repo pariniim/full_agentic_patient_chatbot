@@ -594,6 +594,37 @@ if st.session_state.active_context != selected_context:
     st.rerun()
 
 # ─────────────────────────────────────────────
+# Proactive start — Movy opens the conversation
+# ─────────────────────────────────────────────
+if not st.session_state.messages:
+    # Send a hidden trigger so Movy speaks first, as instructed by its system prompt.
+    # The trigger message is NOT stored in st.session_state.messages (invisible to UI).
+    _trigger_history = [
+        *st.session_state.full_history,
+        {
+            "role": "user",
+            "content": "Please begin the conversation now, exactly as described in your instructions.",
+        },
+    ]
+    _open_resp = client.chat.completions.create(
+        model="openai/gpt-4o",
+        messages=_trigger_history,
+        temperature=0.7,
+    )
+    _opening_line = _open_resp.choices[0].message.content
+
+    # Store trigger + response in full_history (for context continuity), but
+    # only the assistant reply in messages (what the UI renders).
+    st.session_state.full_history.append(
+        {"role": "user", "content": "Please begin the conversation now, exactly as described in your instructions."}
+    )
+    st.session_state.full_history.append(
+        {"role": "assistant", "content": _opening_line}
+    )
+    st.session_state.messages.append({"role": "assistant", "content": _opening_line})
+    st.rerun()
+
+# ─────────────────────────────────────────────
 # Header
 # ─────────────────────────────────────────────
 # Derive a short badge label from the selected context
