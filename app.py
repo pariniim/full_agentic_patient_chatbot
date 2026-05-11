@@ -193,12 +193,13 @@ section[data-testid="stSidebar"]{display:none;}
   color:#ef4444;border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.6rem;margin:0.1rem;}
 
 /* Streamlit button overrides */
-.stButton>button{background: #2B5CD9;color:#fff;border:none;
+.stButton>button{background: #2B5CD9 !important; color:#FFFFFF !important; border:none;
   border-radius:24px;font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:600;
   padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;
   box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
-.stButton>button:hover{background: #1e4bb3; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
-.stButton>button[kind="secondary"]{background:#FFFFFF;color:#2B5CD9;border:1px solid #2B5CD9;}
+.stButton>button:hover{background: #1e4bb3 !important; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
+/* No secondary buttons - all CTAs should be blue/white */
+
 
 /* Splash Screen */
 .splash-container {
