@@ -193,11 +193,28 @@ section[data-testid="stSidebar"]{display:none;}
   color:#ef4444;border-radius:999px;font-size:0.7rem;font-weight:600;padding:0.15rem 0.6rem;margin:0.1rem;}
 
 /* Streamlit button overrides */
-.stButton>button{background:linear-gradient(135deg,#C4603A,#e07a5f);color:#fff;border:none;
-  border-radius:10px;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:500;
-  padding:0.5rem 1.25rem;cursor:pointer;transition:opacity 0.2s;}
-.stButton>button:hover{opacity:0.85;}
-.stButton>button[kind="secondary"]{background:#FFFFFF;color:#C4603A;border:1px solid #C4603A;}
+.stButton>button{background: #2B5CD9;color:#fff;border:none;
+  border-radius:24px;font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:600;
+  padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;
+  box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
+.stButton>button:hover{background: #1e4bb3; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
+.stButton>button[kind="secondary"]{background:#FFFFFF;color:#2B5CD9;border:1px solid #2B5CD9;}
+
+/* Splash Screen */
+.splash-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    gap: 2rem;
+    padding-bottom: 4rem;
+}
+.splash-logo {
+    width: 180px;
+    margin-bottom: 1rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -379,7 +396,10 @@ def call_llm(history: list, temp: float = 0.7) -> str:
     return r.choices[0].message.content
 
 # ── Session init ──────────────────────────────────────────────────────────────
+if "show_splash" not in st.session_state:
+    st.session_state.show_splash = True
 if "phase" not in st.session_state:
+
     st.session_state.phase = "onboarding"
 if "patient_data" not in st.session_state:
     st.session_state.patient_data = {}
@@ -395,7 +415,7 @@ if "ex_state" not in st.session_state:
     st.session_state.ex_state = {1: "idle", 2: "idle"}
 
 # ── Proactive opening ─────────────────────────────────────────────────────────
-if not st.session_state.messages:
+if not st.session_state.messages and not st.session_state.show_splash:
     _h = [*st.session_state.full_history,
           {"role": "user", "content": "Please begin the conversation now."}]
     _reply = call_llm(_h)
@@ -405,6 +425,7 @@ if not st.session_state.messages:
     st.session_state.messages.append({"role": "assistant", "content": _clean})
     process_signal(_sig)
     st.rerun()
+
 
 # ── Phase progress indicator ──────────────────────────────────────────────────
 PHASES = ["onboarding", "programme_selection", "in_session", "post_checkin", "pt_summary"]
@@ -428,14 +449,21 @@ def render_header():
     """, unsafe_allow_html=True)
 
 # The header and other elements will render inside the styled block-container
-render_header()
+if st.session_state.show_splash:
+    st.markdown('<div class="splash-container">', unsafe_allow_html=True)
+    st.image("assets/images/movy_logo1.png", width=220)
+    if st.button("Start Onboarding  →"):
+        st.session_state.show_splash = False
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    render_header()
+    # ── Render chat history ───────────────────────────────────────────────────────
+    for msg in st.session_state.messages:
+        rc = "user" if msg["role"] == "user" else "movy"
+        st.markdown(f'<div class="chat-row {rc}"><div class="bubble {rc}">{msg["content"]}</div></div>',
+                    unsafe_allow_html=True)
 
-
-# ── Render chat history ───────────────────────────────────────────────────────
-for msg in st.session_state.messages:
-    rc = "user" if msg["role"] == "user" else "movy"
-    st.markdown(f'<div class="chat-row {rc}"><div class="bubble {rc}">{msg["content"]}</div></div>',
-                unsafe_allow_html=True)
 
 # ── Ambient music ─────────────────────────────────────────────────────────────
 if st.session_state.music_playing:
