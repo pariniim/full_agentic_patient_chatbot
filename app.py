@@ -12,15 +12,62 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 .stApp {
-    background: #FAF6F2;
+    background: #d8d1ca; /* Outside the phone */
     color: #1a1d27;
 }
 #MainMenu,footer,header{visibility:hidden;}
-.block-container{padding-top:2rem;padding-bottom:6rem;max-width:780px;}
+
+/* The Phone Screen */
+.block-container {
+    background: #FAF6F2 !important;
+    max-width: 410px !important;
+    height: 880px !important;
+    margin: 40px auto !important;
+    padding: 60px 20px 100px 20px !important;
+    border: 12px solid #2d2d2d; /* Titanium frame */
+    border-radius: 60px;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.3);
+    position: relative;
+    overflow-y: auto !important;
+    scrollbar-width: none;
+}
+.block-container::-webkit-scrollbar { display: none; }
+
 section[data-testid="stSidebar"]{display:none;}
 
+/* Dynamic Island */
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 55px; /* Adjust based on margin */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 35px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 9999;
+}
+
+/* Home Indicator */
+.stApp::after {
+    content: "";
+    position: fixed;
+    bottom: 55px; /* Adjust based on margin */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 5px;
+    background: #000;
+    border-radius: 10px;
+    opacity: 0.2;
+    z-index: 9999;
+}
+
+
 /* Header */
-.movy-header{text-align:center;padding:2rem 0 0.5rem;}
+.movy-header{text-align:center;padding:1rem 0 0.5rem;}
+
 .movy-header .logo{font-size:2.4rem;letter-spacing:-1px;font-weight:600;
   background:linear-gradient(135deg,#7c6af7 0%,#a78bfa 50%,#60a5fa 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
@@ -73,12 +120,40 @@ section[data-testid="stSidebar"]{display:none;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
 /* Input */
-.stChatInput>div{background:#FFFFFF!important;border:1px solid #d8d1ca!important;
-  border-radius:14px!important;transition:border-color 0.2s;}
+.stChatInput {
+    position: fixed !important;
+    bottom: 60px !important; /* Above the home indicator */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 370px !important;
+    z-index: 10000;
+}
+.stChatInput>div {
+    background: #FFFFFF !important;
+    border: 1px solid #d8d1ca !important;
+    border-radius: 24px !important;
+    transition: border-color 0.2s;
+}
 .stChatInput>div:focus-within{border-color:#C4603A!important;
   box-shadow:0 0 0 3px rgba(196,96,58,0.1)!important;}
 .stChatInput textarea{color:#1a1d27!important;font-family:'Inter',sans-serif!important;font-size:0.93rem!important;}
 .stChatInput textarea::placeholder{color:#8b837a!important;}
+
+
+/* Bottom Home Indicator */
+.home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 5px;
+    background: #000;
+    border-radius: 10px;
+    opacity: 0.2;
+    z-index: 1000;
+}
+
 ::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:10px;}
@@ -352,7 +427,9 @@ def render_header():
     <div class="phase-bar">{dots_html}</div>
     """, unsafe_allow_html=True)
 
+# The header and other elements will render inside the styled block-container
 render_header()
+
 
 # ── Render chat history ───────────────────────────────────────────────────────
 for msg in st.session_state.messages:
