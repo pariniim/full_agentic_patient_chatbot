@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     max-width: 410px !important;
     height: 880px !important;
     margin: 40px auto !important;
-    padding: 60px 20px 110px 20px !important;  /* bottom space for input bar */
+    padding: 185px 20px 110px 20px !important; /* top = fixed header height; bottom = input bar */
     border: 12px solid #2d2d2d; /* Titanium frame */
     border-radius: 60px;
     box-shadow: 0 50px 100px rgba(0,0,0,0.3);
@@ -81,15 +81,15 @@ section[data-testid="stSidebar"]{display:none;}
     text-transform: uppercase;
 }
 
-/* Sticky header wrapper — bleeds to phone edges, pins to top on scroll */
+/* Header — position:fixed applied by JS; these are visual-only styles */
 .sticky-header {
-    position: sticky;
-    top: -60px;            /* pull up to cancel .block-container’s 60px top padding */
-    z-index: 200;
     background: #FAF6F2;
-    margin: -60px -20px 0 -20px;   /* bleed to phone inner edges */
-    padding: 60px 20px 0.5rem 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 10px 20px 0.75rem 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    border-radius: 48px 48px 0 0;
+    box-sizing: border-box;
+    z-index: 8000;
+    overflow: hidden;
 }
 
 /* Phase progress */
@@ -779,6 +779,26 @@ components.html("""
         overlay.style.left   = r.left + 'px';
         overlay.style.width  = r.width  + 'px';
         overlay.style.height = r.height + 'px';
+
+        // ── Fix header to the phone's inner top edge
+        var header = doc.querySelector('.sticky-header');
+        if (header) {
+            header.style.position    = 'fixed';
+            header.style.top         = (r.top + 12) + 'px';  /* inside top border */
+            header.style.left        = (r.left + 12) + 'px'; /* inside left border */
+            header.style.width       = (r.width - 24) + 'px'; /* content width */
+            header.style.zIndex      = '8000';
+        }
+
+        // ── Fix header to the phone's inner top edge
+        var header = doc.querySelector('.sticky-header');
+        if (header) {
+            header.style.position    = 'fixed';
+            header.style.top         = (r.top + 12) + 'px';
+            header.style.left        = (r.left + 12) + 'px';
+            header.style.width       = (r.width - 24) + 'px';
+            header.style.zIndex      = '8000';
+        }
 
         if (!bar) return;
         // ── Position input bar at the phone's bottom (inside the frame)
