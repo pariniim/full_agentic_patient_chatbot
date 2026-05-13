@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     max-width: 410px !important;
     height: 880px !important;
     margin: 40px auto !important;
-    padding: 60px 20px 40px 20px !important;  /* modest bottom clearance */
+    padding: 60px 20px 110px 20px !important;  /* bottom space for input bar */
     border: 12px solid #2d2d2d; /* Titanium frame */
     border-radius: 60px;
     box-shadow: 0 50px 100px rgba(0,0,0,0.3);
@@ -132,15 +132,14 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
-/* ── Chat Input Bar — rendered BELOW the phone frame ── */
+/* ── Chat Input Bar — inside the phone, border overlay renders above it ── */
 .stChatInput {
     position: fixed !important;
-    z-index: 10000 !important;
+    z-index: 5000 !important;           /* below overlay (10000) */
     background: #FFFFFF !important;
-    padding: 12px 14px 12px 14px !important;
-    border-radius: 20px !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.10) !important;
-    /* left / top / width are set at runtime by the JS snippet below */
+    padding: 10px 14px 24px 14px !important;
+    box-shadow: none !important;
+    /* left / bottom / width / border-radius set by JS */
 }
 /* Every wrapper div Streamlit nests inside the bar → all #F0F2F7 */
 .stChatInput div,
@@ -745,13 +744,37 @@ components.html("""
         var phone = doc.querySelector('.block-container');
         var bar   = doc.querySelector('[data-testid="stChatInput"]')
                    || doc.querySelector('.stChatInput');
-        if (!phone || !bar) return;
+        if (!phone) return;
         var r = phone.getBoundingClientRect();
-        bar.style.top         = (r.bottom + 10) + 'px';   /* 10px gap below phone */
-        bar.style.bottom      = 'auto';
+
+        // ── Phone border overlay – transparent div that redraws the titanium
+        //    border at z-index 10000, above the input bar (z-index 5000),
+        //    so the border visually sits OVER the input area.
+        var overlay = doc.getElementById('movy-phone-overlay');
+        if (!overlay) {
+            overlay = doc.createElement('div');
+            overlay.id = 'movy-phone-overlay';
+            overlay.style.position    = 'fixed';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.border      = '12px solid #2d2d2d';
+            overlay.style.borderRadius = '60px';
+            overlay.style.zIndex      = '10000';
+            overlay.style.background  = 'transparent';
+            overlay.style.boxSizing   = 'border-box';
+            doc.body.appendChild(overlay);
+        }
+        overlay.style.top    = r.top  + 'px';
+        overlay.style.left   = r.left + 'px';
+        overlay.style.width  = r.width  + 'px';
+        overlay.style.height = r.height + 'px';
+
+        if (!bar) return;
+        // ── Position input bar at the phone's bottom (inside the frame)
         bar.style.left        = r.left + 'px';
         bar.style.width       = r.width + 'px';
-        bar.style.borderRadius = '20px';
+        bar.style.bottom      = (window.parent.innerHeight - r.bottom) + 'px';
+        bar.style.top         = 'auto';
+        bar.style.borderRadius = '0 0 48px 48px';
         bar.style.overflow    = 'hidden';
     }
     position();
