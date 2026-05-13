@@ -648,72 +648,38 @@ def render_video_widget(n: int):
     """Render the exercise video player for exercise n (1 or 2)."""
     name = st.session_state.patient_data.get(f"exercise_{n}", f"Exercise {n}")
     state = st.session_state.ex_state.get(n, "idle")
-    video_b64 = load_video_b64(_video_index(name))
+    vid_index = _video_index(name)
+    vid_path = Path(f"assets/video/Ex0{vid_index}.mp4")
 
-    def _embed_video(autoplay: bool = False) -> None:
-        """Inject an HTML5 <video> element. Falls back to placeholder if file missing."""
-        if video_b64:
-            autoplay_attr = "autoplay" if autoplay else ""
-            st.markdown(
-                f"""
-                <div class="video-wrap">
-                  <video
-                    {autoplay_attr}
-                    controls
-                    loop
-                    playsinline
-                    style="width:100%;border-radius:16px;display:block;"
-                  >
-                    <source src="data:video/mp4;base64,{video_b64}" type="video/mp4">
-                    Your browser does not support HTML5 video.
-                  </video>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    def _show_video():
+        if vid_path.exists():
+            st.video(str(vid_path))
         else:
-            # Fallback placeholder if video file is not found
-            icon = "🏃" if autoplay else "▶️"
-            sublabel = "Exercise in progress…" if autoplay else "Ready to begin"
-            css_state = "playing" if autoplay else "idle"
-            st.markdown(
-                f"""
-                <div class="video-wrap">
-                  <div class="video-screen {css_state}">
-                    <div class="vid-icon">{icon}</div>
-                    <div class="vid-label">{name}</div>
-                    <div class="vid-sublabel">{sublabel}</div>
-                  </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.warning(f"Video not found: {vid_path}")
 
     if state == "idle":
-        # Show video paused, ready to start
         st.markdown(
             f'<div class="vid-label" style="font-size:0.9rem;font-weight:600;'
             f'color:#C4603A;margin-bottom:0.4rem;">{name}</div>',
             unsafe_allow_html=True,
         )
-        _embed_video(autoplay=False)
+        _show_video()
         if st.button(f"▶ Start Exercise {n}", key=f"start_{n}"):
             st.session_state.ex_state[n] = "playing"
             st.session_state.music_playing = True
             st.rerun()
 
     elif state == "playing":
-        # Video autoplays while in progress
         st.markdown(
             f'<div class="vid-label" style="font-size:0.9rem;font-weight:600;'
             f'color:#C4603A;margin-bottom:0.4rem;">{name} — in progress 🏃</div>',
             unsafe_allow_html=True,
         )
-        _embed_video(autoplay=True)
+        _show_video()
         if st.button(f"✓ Mark Exercise {n} Complete", key=f"done_{n}"):
             st.session_state.ex_state[n] = "complete"
             st.session_state.music_playing = False
-            msg = f"I've completed {name}."
+            msg = f"I have completed {name}."
             st.session_state.messages.append({"role": "user", "content": msg})
             st.session_state.full_history.append({"role": "user", "content": msg})
             typing_ph = st.empty()
@@ -732,16 +698,13 @@ def render_video_widget(n: int):
 
     elif state == "complete":
         st.markdown(
-            f"""
-            <div class="video-wrap">
-              <div class="video-screen complete">
-                <div class="vid-badge">✓ Completed</div>
-                <div class="vid-label" style="color:#6b7280">{name}</div>
-              </div>
-            </div>
-            """,
+            f'<div class="video-wrap"><div class="video-screen complete">'
+            f'<div class="vid-badge">✓ Completed</div>'
+            f'<div class="vid-label" style="color:#6b7280">{name}</div>'
+            f'</div></div>',
             unsafe_allow_html=True,
         )
+
 
 # Show video widget when in-session
 if st.session_state.phase == "in_session":
