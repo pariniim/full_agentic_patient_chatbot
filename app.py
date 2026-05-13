@@ -721,10 +721,24 @@ if st.session_state.phase == "pt_summary":
           </div>
         </div>""", unsafe_allow_html=True)
 
-# ── Snap input bar to phone bottom ───────────────────────────────────────────
+# ── Snap input bar to phone bottom + placeholder colour ──────────────────────
 components.html("""
 <script>
 (function snapInput() {
+    // Inject placeholder colour into the parent document (bypasses Streamlit CSS scope)
+    (function injectStyle() {
+        var doc = window.parent.document;
+        if (doc.getElementById('movy-placeholder-style')) return;
+        var s = doc.createElement('style');
+        s.id = 'movy-placeholder-style';
+        s.textContent = [
+            '.stChatInput textarea::placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+            '.stChatInput textarea::-webkit-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+            '.stChatInput textarea:-ms-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+        ].join('');
+        doc.head.appendChild(s);
+    })();
+
     function position() {
         var doc = window.parent.document;
         var phone = doc.querySelector('.block-container');
