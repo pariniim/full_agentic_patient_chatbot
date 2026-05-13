@@ -1,6 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import json, re, time, base64
+import json, re, time, base64, random
 from datetime import date
 from pathlib import Path
 from openai import OpenAI
@@ -142,6 +142,20 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(2){animation-delay:0.2s;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
+
+/* Square exercise videos (st.video renders these) */
+.stVideo, [data-testid="stVideo"] {
+    width: 100% !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+}
+.stVideo video, [data-testid="stVideo"] video {
+    width: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+    border-radius: 16px !important;
+    display: block !important;
+}
 
 /* ── Chat Input Bar — inside the phone, border overlay renders above it ── */
 .stChatInput {
@@ -358,15 +372,10 @@ The UI will show a 'Start Session' button.
 ══════════════════════════════════════
 PHASE 2 — PROGRAMME SELECTION
 ══════════════════════════════════════
-There are two available exercise videos:
-- Ex01.mp4
-- Ex02.mp4
-
-Randomly choose the sequence order each time:
-Option A: Ex01.mp4 then Ex02.mp4
-Option B: Ex02.mp4 then Ex01.mp4
-
-Store exercise_1_name and exercise_2_name accordingly.
+Two exercise videos have been selected for this session.
+They are listed in the [SESSION VIDEOS] block at the end of this prompt.
+Use them exactly as given. You may assign them in either order (A→B or B→A).
+Store exercise_1_name and exercise_2_name using the exact filenames provided.
 
 Say:
 "Perfect, I've prepared two exercises for you. Let's begin."
@@ -536,12 +545,24 @@ def load_video_b64(n: int) -> str | None:
         return base64.b64encode(p.read_bytes()).decode()
     return None
 
-def _video_index(exercise_name: str) -> int:
-    """Map an exercise name (e.g. 'Ex01.mp4' or 'Ex02.mp4') to a video index (1 or 2)."""
-    name = exercise_name.lower()
-    if "ex02" in name or name.endswith("2"):
-        return 2
-    return 1  # default to Ex01
+# All available exercise video files
+VIDEO_FILES = [
+    "Ex01_square.mp4",
+    "Ex02_square.mp4",
+    "Ex03_square.mp4",
+    "Ex04_square.mp4",
+]
+
+def _video_path(exercise_name: str) -> Path:
+    """Resolve the Path to the video file matching the exercise name."""
+    nm = exercise_name.lower()
+    for vf in VIDEO_FILES:
+        if vf.lower() in nm or vf.lower().replace('.mp4', '') in nm:
+            return Path(f'assets/video/{vf}')
+    # Fallback: treat name as a bare filename
+    if exercise_name.endswith('.mp4'):
+        return Path(f'assets/video/{exercise_name}')
+    return Path(f'assets/video/{VIDEO_FILES[0]}')
 
 # ── LLM call ─────────────────────────────────────────────────────────────────
 def call_llm(history: list, temp: float = 0.7) -> str:
@@ -562,8 +583,18 @@ if "patient_data" not in st.session_state:
     st.session_state.patient_data = {}
 if "messages" not in st.session_state:
     st.session_state.messages = []
+# Pick 2 random exercise videos for this session (done once at session start)
+if "selected_videos" not in st.session_state:
+    st.session_state.selected_videos = random.sample(VIDEO_FILES, 2)
+
 if "full_history" not in st.session_state:
-    st.session_state.full_history = [{"role": "system", "content": MOVY_UNIFIED_PROMPT}]
+    _v1, _v2 = st.session_state.selected_videos
+    _session_prompt = (
+        MOVY_UNIFIED_PROMPT
+        + f"\n\n[SESSION VIDEOS]\nexercise_1: {_v1}\nexercise_2: {_v2}\n"
+        + "Emit these exact filenames in the exercises_selected signal."
+    )
+    st.session_state.full_history = [{"role": "system", "content": _session_prompt}]
 if "in_session_step" not in st.session_state:
     st.session_state.in_session_step = "intro"
 if "music_playing" not in st.session_state:
@@ -648,8 +679,7 @@ def render_video_widget(n: int):
     """Render the exercise video player for exercise n (1 or 2)."""
     name = st.session_state.patient_data.get(f"exercise_{n}", f"Exercise {n}")
     state = st.session_state.ex_state.get(n, "idle")
-    vid_index = _video_index(name)
-    vid_path = Path(f"assets/video/Ex0{vid_index}.mp4")
+    vid_path = _video_path(name)
 
     def _show_video():
         if vid_path.exists():
