@@ -373,30 +373,47 @@ The UI will show a 'Start Session' button.
 PHASE 2 — PROGRAMME SELECTION
 ══════════════════════════════════════
 Two exercise videos have been selected for this session.
-They are listed in the [SESSION VIDEOS] block at the end of this prompt.
-Use them exactly as given. You may assign them in either order (A→B or B→A).
-Store exercise_1_name and exercise_2_name using the exact filenames provided.
+
+They must always be referred to as:
+- “Exercise 1”
+- “Exercise 2”
+
+Never mention filenames (e.g., Ex01.mp4). Never show filenames in the user bubble.
+
+Randomly choose the sequence order each time:
+Option A: Exercise 1 → Exercise 2
+Option B: Exercise 2 → Exercise 1
+
+Store exercise_1_name = "Exercise 1"
+Store exercise_2_name = "Exercise 2"
+(Only the labels are stored; filenames are never spoken.)
 
 Say:
 "Perfect, I've prepared two exercises for you. Let's begin."
 
 Then emit:
-<MOVY_SIGNAL>{{"action":"exercises_selected","exercise_1":"[NAME]","exercise_2":"[NAME]"}}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"exercises_selected","exercise_1":"Exercise 1","exercise_2":"Exercise 2"}}</MOVY_SIGNAL>
+
 ══════════════════════════════════════
 PHASE 3 — IN-SESSION
 ══════════════════════════════════════
 Step A: Introduce Exercise 1 warmly.
-Say something like:
+Say:
 "Let's start with your first exercise. Follow the video and take your time."
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":1}}</MOVY_SIGNAL>
-(UI will play exercise_1_name, either Ex01.mp4 or Ex02.mp4.)
 
-Wait for the user to report completion.
+UI behaviour:
+- Play “Exercise 1” video.
+- Automatically start ambient music (assets/audio/ambient.mp3).
+- Show a “Mark Exercise as Complete” button.
+Wait until the user presses the completion button.
 
-Step B: When the user completes Exercise 1, do the mid-session check-in.
-Ask: "How is it going?"
+Step B: When the user marks Exercise 1 as complete:
+Ask the mid-session check-in question:
+"How is it going?"
+
 Classify response as: energetic / tired / pain / unsure / positive / no_response.
 Store: mid_session_energy_level, mid_session_pain, mid_session_confusion.
 
@@ -413,13 +430,20 @@ Say:
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":2}}</MOVY_SIGNAL>
-(UI will play exercise_2_name, the remaining video.)
 
-Step D: When user completes Exercise 2, say:
+UI behaviour:
+- Play “Exercise 2” video.
+- Automatically start ambient music (assets/audio/ambient.mp3).
+- Show a “Mark Exercise as Complete” button.
+Wait until the user presses the completion button.
+
+Step D: When the user marks Exercise 2 as complete:
+Say:
 "That's your session done, [preferred_name]. Great work — you're on track."
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"session_complete"}}</MOVY_SIGNAL>
+
 
 ══════════════════════════════════════
 PHASE 4 — POST-SESSION CHECK-IN
@@ -554,15 +578,22 @@ VIDEO_FILES = [
 ]
 
 def _video_path(exercise_name: str) -> Path:
-    """Resolve the Path to the video file matching the exercise name."""
-    nm = exercise_name.lower()
-    for vf in VIDEO_FILES:
-        if vf.lower() in nm or vf.lower().replace('.mp4', '') in nm:
+    """Resolve the Path to the video file for the given exercise label.
+
+    The LLM uses 'Exercise 1' / 'Exercise 2' as labels.
+    We map these to the session-selected video files.
+    """
+    selected = st.session_state.get('selected_videos', VIDEO_FILES[:2])
+    nm = exercise_name.lower().strip()
+    if nm in ('exercise 2', 'ex2', 'exercise2'):
+        return Path(f'assets/video/{selected[1]}')
+    if nm in ('exercise 1', 'ex1', 'exercise1'):
+        return Path(f'assets/video/{selected[0]}')
+    # Fallback: try matching against known filenames
+    for vf in selected:
+        if vf.lower().replace('_square.mp4', '') in nm or vf.lower() in nm:
             return Path(f'assets/video/{vf}')
-    # Fallback: treat name as a bare filename
-    if exercise_name.endswith('.mp4'):
-        return Path(f'assets/video/{exercise_name}')
-    return Path(f'assets/video/{VIDEO_FILES[0]}')
+    return Path(f'assets/video/{selected[0]}')
 
 # ── LLM call ─────────────────────────────────────────────────────────────────
 def call_llm(history: list, temp: float = 0.7) -> str:
@@ -591,8 +622,9 @@ if "full_history" not in st.session_state:
     _v1, _v2 = st.session_state.selected_videos
     _session_prompt = (
         MOVY_UNIFIED_PROMPT
-        + f"\n\n[SESSION VIDEOS]\nexercise_1: {_v1}\nexercise_2: {_v2}\n"
-        + "Emit these exact filenames in the exercises_selected signal."
+        + f"\n\n[SESSION VIDEOS]\nVideo A: {_v1}\nVideo B: {_v2}\n"
+        + "These are the internal filenames — NEVER speak or emit them.\n"
+        + "Refer to them only as 'Exercise 1' and 'Exercise 2' in all messages and signals."
     )
     st.session_state.full_history = [{"role": "system", "content": _session_prompt}]
 if "in_session_step" not in st.session_state:
