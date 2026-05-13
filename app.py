@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     max-width: 410px !important;
     height: 880px !important;
     margin: 40px auto !important;
-    padding: 60px 20px 110px 20px !important;  /* bottom clearance for input bar */
+    padding: 60px 20px 40px 20px !important;  /* modest bottom clearance */
     border: 12px solid #2d2d2d; /* Titanium frame */
     border-radius: 60px;
     box-shadow: 0 50px 100px rgba(0,0,0,0.3);
@@ -132,14 +132,15 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
-/* ── Chat Input Bar — dynamically positioned by JS to sit inside the phone ── */
+/* ── Chat Input Bar — rendered BELOW the phone frame ── */
 .stChatInput {
     position: fixed !important;
     z-index: 10000 !important;
     background: #FFFFFF !important;
-    padding: 10px 14px 24px 14px !important;
-    box-shadow: 0 -1px 0 rgba(0,0,0,0.07) !important;
-    /* left / bottom / width are set at runtime by the JS snippet below */
+    padding: 12px 14px 12px 14px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10) !important;
+    /* left / top / width are set at runtime by the JS snippet below */
 }
 /* Every wrapper div Streamlit nests inside the bar → all #F0F2F7 */
 .stChatInput div,
@@ -746,10 +747,11 @@ components.html("""
                    || doc.querySelector('.stChatInput');
         if (!phone || !bar) return;
         var r = phone.getBoundingClientRect();
+        bar.style.top         = (r.bottom + 10) + 'px';   /* 10px gap below phone */
+        bar.style.bottom      = 'auto';
         bar.style.left        = r.left + 'px';
         bar.style.width       = r.width + 'px';
-        bar.style.bottom      = (window.parent.innerHeight - r.bottom) + 'px';
-        bar.style.borderRadius = '0 0 48px 48px';
+        bar.style.borderRadius = '20px';
         bar.style.overflow    = 'hidden';
     }
     position();
@@ -761,8 +763,11 @@ components.html("""
 </script>
 """, height=0)
 
-# ── Chat input ────────────────────────────────────────────────────────────────
-user_input = st.chat_input("Type your message…")
+# ── Chat input (hidden during splash) ───────────────────────────────────────
+if not st.session_state.get("show_splash", True):
+    user_input = st.chat_input("Type your message…")
+else:
+    user_input = None
 
 if user_input and user_input.strip():
     st.session_state.messages.append({"role": "user", "content": user_input})
