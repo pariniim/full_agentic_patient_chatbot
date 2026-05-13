@@ -362,12 +362,17 @@ Compute next_appointment_date as follows:
 Store next_appointment_date.
 
 Then say:
-"Great, I have everything I need. Your next appointment is scheduled for [next_appointment_date]. When you're ready, you can start your exercise session."
+"Great, I have everything I need. Your next appointment is scheduled for [next_appointment_date]. 
+When you're ready, you can start your exercise session by tapping the button below."
+
+After saying this, proactively invite the user:
+"Would you like to begin your session now?"
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}}</MOVY_SIGNAL>
 
-The UI will show a 'Start Session' button.
+The UI will show a 'Start Session' button. Movy should encourage the user to tap it,
+but must wait for the user to press the button before moving to Programme Selection.
 
 ══════════════════════════════════════
 PHASE 2 — PROGRAMME SELECTION
@@ -773,11 +778,14 @@ if st.session_state.phase == "in_session":
     step = st.session_state.in_session_step
     ex1_s = st.session_state.ex_state.get(1, "idle")
     ex2_s = st.session_state.ex_state.get(2, "idle")
-    # Always show ex1 widget once it has been introduced
-    if step in ("ex1_ready",) or ex1_s in ("playing", "complete"):
+
+    # Show ex1 widget while it hasn't been replaced by ex2 starting
+    ex2_active = ex2_s in ("playing", "complete") or step == "ex2_ready"
+    if (step in ("ex1_ready",) or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
         render_video_widget(1)
-    # Show ex2 widget once it has been introduced
-    if step in ("ex2_ready",) or ex2_s in ("playing", "complete"):
+
+    # Show ex2 widget as soon as ex1 is complete OR ex2 has been introduced
+    if ex2_active or ex1_s == "complete":
         render_video_widget(2)
 
 # ── PT Summary card ───────────────────────────────────────────────────────────
