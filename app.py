@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import json, re, time, base64
 from pathlib import Path
 from openai import OpenAI
@@ -23,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     max-width: 410px !important;
     height: 880px !important;
     margin: 40px auto !important;
-    padding: 60px 20px 0 20px !important;   /* bottom padding handled by input bar */
+    padding: 60px 20px 110px 20px !important;  /* bottom clearance for input bar */
     border: 12px solid #2d2d2d; /* Titanium frame */
     border-radius: 60px;
     box-shadow: 0 50px 100px rgba(0,0,0,0.3);
@@ -121,22 +122,16 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
-/* ── Chat Input Bar (inside the phone frame) ────────────────────────── */
+/* ── Chat Input Bar — dynamically positioned by JS to sit inside the phone ── */
 .stChatInput {
-    position: sticky !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    transform: none !important;
-    width: 100% !important;
-    z-index: 10000;
-    /* White bar that spans the full phone width */
+    position: fixed !important;
+    z-index: 10000 !important;
     background: #FFFFFF !important;
-    padding: 10px 16px 28px 16px !important;  /* 28px bottom = home-indicator clearance */
-    margin-left: -20px !important;            /* bleed to phone edges */
-    margin-right: -20px !important;
-    box-shadow: 0 -1px 0 #e8e2dc;
+    padding: 10px 14px 24px 14px !important;
+    box-shadow: 0 -1px 0 rgba(0,0,0,0.07) !important;
+    /* left / bottom / width are set at runtime by the JS snippet below */
 }
-/* The pill-shaped row Streamlit renders */
+/* #F0F2F7 pill */
 .stChatInput > div {
     background: #F0F2F7 !important;
     border: none !important;
@@ -149,7 +144,6 @@ section[data-testid="stSidebar"]{display:none;}
 .stChatInput > div:focus-within {
     box-shadow: 0 0 0 2px rgba(43,92,217,0.25) !important;
 }
-/* The textarea itself */
 .stChatInput textarea {
     background: transparent !important;
     color: #1a1d27 !important;
@@ -160,7 +154,7 @@ section[data-testid="stSidebar"]{display:none;}
     resize: none !important;
 }
 .stChatInput textarea::placeholder { color: #8b837a !important; }
-/* Send button — blue circle with white arrow */
+/* #2B5CD9 round send button */
 .stChatInput button {
     background: #2B5CD9 !important;
     border: none !important;
@@ -182,12 +176,13 @@ section[data-testid="stSidebar"]{display:none;}
     background: #1e4bb3 !important;
     transform: scale(1.07) !important;
 }
-/* Replace whatever SVG Streamlit puts inside with a white arrow via CSS */
+/* White arrow SVG — rotated 90° so it points RIGHT */
 .stChatInput button svg {
     fill: #FFFFFF !important;
     color: #FFFFFF !important;
     width: 18px !important;
     height: 18px !important;
+    transform: rotate(90deg) !important;
 }
 
 
@@ -675,6 +670,32 @@ if st.session_state.phase == "pt_summary":
             <span class="summary-val">{flag_html}</span>
           </div>
         </div>""", unsafe_allow_html=True)
+
+# ── Snap input bar to phone bottom ───────────────────────────────────────────
+components.html("""
+<script>
+(function snapInput() {
+    function position() {
+        var doc = window.parent.document;
+        var phone = doc.querySelector('.block-container');
+        var bar   = doc.querySelector('[data-testid="stChatInput"]')
+                   || doc.querySelector('.stChatInput');
+        if (!phone || !bar) return;
+        var r = phone.getBoundingClientRect();
+        bar.style.left        = r.left + 'px';
+        bar.style.width       = r.width + 'px';
+        bar.style.bottom      = (window.parent.innerHeight - r.bottom) + 'px';
+        bar.style.borderRadius = '0 0 48px 48px';
+        bar.style.overflow    = 'hidden';
+    }
+    position();
+    window.parent.addEventListener('resize', position);
+    new MutationObserver(position).observe(
+        window.parent.document.body, {childList:true, subtree:true}
+    );
+})();
+</script>
+""", height=0)
 
 # ── Chat input ────────────────────────────────────────────────────────────────
 user_input = st.chat_input("Type your message…")
