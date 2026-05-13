@@ -94,10 +94,10 @@ section[data-testid="stSidebar"]{display:none;}
 .phase-step{display:flex;flex-direction:column;align-items:center;gap:0.2rem;}
 
 /* Chat bubbles */
-.chat-row{display:flex;margin-bottom:1rem;animation:fadeSlide 0.25s ease-out;}
+.chat-row{display:flex;margin-bottom:1rem;animation:fadeSlide 0.25s ease-out;align-items:flex-end;}
 @keyframes fadeSlide{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .chat-row.user{justify-content:flex-end;}
-.chat-row.movy{justify-content:flex-start;}
+.chat-row.movy{justify-content:flex-start;gap:8px;}
 .bubble{max-width:72%;padding:0.75rem 1.1rem;border-radius:18px;font-size:0.93rem;line-height:1.55;}
 .bubble.user {
     background: #FFFFFF;
@@ -110,6 +110,16 @@ section[data-testid="stSidebar"]{display:none;}
     color: #FFFFFF;
     border: 1px solid #C4603A;
     border-bottom-left-radius: 4px;
+}
+/* Movy avatar icon */
+.movy-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
 }
 
 /* Typing */
@@ -131,11 +141,18 @@ section[data-testid="stSidebar"]{display:none;}
     box-shadow: 0 -1px 0 rgba(0,0,0,0.07) !important;
     /* left / bottom / width are set at runtime by the JS snippet below */
 }
-/* #F0F2F7 pill */
-.stChatInput > div {
+/* Every wrapper div Streamlit nests inside the bar → all #F0F2F7 */
+.stChatInput div,
+.stChatInput > div,
+.stChatInput [data-testid="stChatInputTextArea"],
+.stChatInput [data-baseweb="textarea"],
+.stChatInput [data-baseweb="base-input"] {
     background: #F0F2F7 !important;
+    background-color: #F0F2F7 !important;
     border: none !important;
     border-radius: 24px !important;
+}
+.stChatInput > div {
     display: flex !important;
     align-items: center !important;
     padding: 0 6px 0 14px !important;
@@ -144,16 +161,29 @@ section[data-testid="stSidebar"]{display:none;}
 .stChatInput > div:focus-within {
     box-shadow: 0 0 0 2px rgba(43,92,217,0.25) !important;
 }
+/* Textarea itself — explicit background, NOT transparent */
 .stChatInput textarea {
-    background: transparent !important;
+    background: #F0F2F7 !important;
+    background-color: #F0F2F7 !important;
     color: #1a1d27 !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.93rem !important;
     border: none !important;
     outline: none !important;
     resize: none !important;
+    box-shadow: none !important;
+    -webkit-text-fill-color: #1a1d27 !important;
 }
-.stChatInput textarea::placeholder { color: #8b837a !important; }
+.stChatInput textarea::placeholder {
+    color: #B4BACF !important;
+    opacity: 1 !important;
+}
+.stChatInput textarea:focus {
+    background: #F0F2F7 !important;
+    background-color: #F0F2F7 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
 /* #2B5CD9 round send button */
 .stChatInput button {
     background: #2B5CD9 !important;
@@ -433,6 +463,14 @@ def load_audio_b64() -> str | None:
         return base64.b64encode(p.read_bytes()).decode()
     return None
 
+# ── Logo loader ───────────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def load_logo_b64() -> str | None:
+    p = Path("assets/images/LogoCircle1.png")
+    if p.exists():
+        return base64.b64encode(p.read_bytes()).decode()
+    return None
+
 # ── Video loader ──────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_video_b64(n: int) -> str | None:
@@ -515,10 +553,22 @@ if st.session_state.show_splash:
 else:
     render_header()
     # ── Render chat history ───────────────────────────────────────────────────────
+    _logo_b64 = load_logo_b64()
+    _avatar_html = (
+        f'<img src="data:image/png;base64,{_logo_b64}" class="movy-avatar" alt="Movy">'
+        if _logo_b64 else ''
+    )
     for msg in st.session_state.messages:
-        rc = "user" if msg["role"] == "user" else "movy"
-        st.markdown(f'<div class="chat-row {rc}"><div class="bubble {rc}">{msg["content"]}</div></div>',
-                    unsafe_allow_html=True)
+        if msg["role"] == "user":
+            st.markdown(
+                f'<div class="chat-row user"><div class="bubble user">{msg["content"]}</div></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<div class="chat-row movy">{_avatar_html}<div class="bubble movy">{msg["content"]}</div></div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ── Ambient music ─────────────────────────────────────────────────────────────
