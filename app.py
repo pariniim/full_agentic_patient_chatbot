@@ -347,7 +347,7 @@ Then say:
 "Great, I have everything I need. Your next appointment is scheduled for [next_appointment_date]. When you're ready, you can start your exercise session."
 
 Then emit:
-<MOVY_SIGNAL>{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}}</MOVY_SIGNAL>
 
 The UI will show a 'Start Session' button.
 
@@ -368,7 +368,7 @@ Say:
 "Perfect, I've prepared two exercises for you. Let's begin."
 
 Then emit:
-<MOVY_SIGNAL>{"action":"exercises_selected","exercise_1":"[NAME]","exercise_2":"[NAME]"}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"exercises_selected","exercise_1":"[NAME]","exercise_2":"[NAME]"}}</MOVY_SIGNAL>
 ══════════════════════════════════════
 PHASE 3 — IN-SESSION
 ══════════════════════════════════════
@@ -377,7 +377,7 @@ Say something like:
 "Let's start with your first exercise. Follow the video and take your time."
 
 Then emit:
-<MOVY_SIGNAL>{"action":"introduce_exercise","exercise":1}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":1}}</MOVY_SIGNAL>
 (UI will play exercise_1_name, either Ex01.mp4 or Ex02.mp4.)
 
 Wait for the user to report completion.
@@ -399,14 +399,14 @@ Say:
 "Great. Let's move on to your second exercise."
 
 Then emit:
-<MOVY_SIGNAL>{"action":"introduce_exercise","exercise":2}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":2}}</MOVY_SIGNAL>
 (UI will play exercise_2_name, the remaining video.)
 
 Step D: When user completes Exercise 2, say:
 "That's your session done, [preferred_name]. Great work — you're on track."
 
 Then emit:
-<MOVY_SIGNAL>{"action":"session_complete"}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"session_complete"}}</MOVY_SIGNAL>
 
 ══════════════════════════════════════
 PHASE 4 — POST-SESSION CHECK-IN
