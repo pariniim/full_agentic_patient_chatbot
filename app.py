@@ -23,13 +23,15 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     max-width: 410px !important;
     height: 880px !important;
     margin: 40px auto !important;
-    padding: 60px 20px 100px 20px !important;
+    padding: 60px 20px 0 20px !important;   /* bottom padding handled by input bar */
     border: 12px solid #2d2d2d; /* Titanium frame */
     border-radius: 60px;
     box-shadow: 0 50px 100px rgba(0,0,0,0.3);
     position: relative;
     overflow-y: auto !important;
     scrollbar-width: none;
+    display: flex !important;
+    flex-direction: column !important;
 }
 .block-container::-webkit-scrollbar { display: none; }
 
@@ -119,25 +121,74 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
-/* Input */
+/* ── Chat Input Bar (inside the phone frame) ────────────────────────── */
 .stChatInput {
-    position: fixed !important;
-    bottom: 60px !important; /* Above the home indicator */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 370px !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    width: 100% !important;
     z-index: 10000;
-}
-.stChatInput>div {
+    /* White bar that spans the full phone width */
     background: #FFFFFF !important;
-    border: 1px solid #d8d1ca !important;
-    border-radius: 24px !important;
-    transition: border-color 0.2s;
+    padding: 10px 16px 28px 16px !important;  /* 28px bottom = home-indicator clearance */
+    margin-left: -20px !important;            /* bleed to phone edges */
+    margin-right: -20px !important;
+    box-shadow: 0 -1px 0 #e8e2dc;
 }
-.stChatInput>div:focus-within{border-color:#C4603A!important;
-  box-shadow:0 0 0 3px rgba(196,96,58,0.1)!important;}
-.stChatInput textarea{color:#1a1d27!important;font-family:'Inter',sans-serif!important;font-size:0.93rem!important;}
-.stChatInput textarea::placeholder{color:#8b837a!important;}
+/* The pill-shaped row Streamlit renders */
+.stChatInput > div {
+    background: #F0F2F7 !important;
+    border: none !important;
+    border-radius: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 6px 0 14px !important;
+    transition: box-shadow 0.2s;
+}
+.stChatInput > div:focus-within {
+    box-shadow: 0 0 0 2px rgba(43,92,217,0.25) !important;
+}
+/* The textarea itself */
+.stChatInput textarea {
+    background: transparent !important;
+    color: #1a1d27 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.93rem !important;
+    border: none !important;
+    outline: none !important;
+    resize: none !important;
+}
+.stChatInput textarea::placeholder { color: #8b837a !important; }
+/* Send button — blue circle with white arrow */
+.stChatInput button {
+    background: #2B5CD9 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: background 0.2s, transform 0.15s !important;
+    box-shadow: 0 2px 8px rgba(43,92,217,0.35) !important;
+    padding: 0 !important;
+}
+.stChatInput button:hover {
+    background: #1e4bb3 !important;
+    transform: scale(1.07) !important;
+}
+/* Replace whatever SVG Streamlit puts inside with a white arrow via CSS */
+.stChatInput button svg {
+    fill: #FFFFFF !important;
+    color: #FFFFFF !important;
+    width: 18px !important;
+    height: 18px !important;
+}
 
 
 /* Bottom Home Indicator */
