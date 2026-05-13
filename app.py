@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import json, re, time, base64
+from datetime import date
 from pathlib import Path
 from openai import OpenAI
 
@@ -314,6 +315,9 @@ EXERCISE_LIBRARY = [
 ]
 
 MOVY_UNIFIED_PROMPT = f"""
+TODAY'S DATE: {date.today().strftime("%A, %d %B %Y")}
+Always use this date as "today" for any date calculations.
+
 You are Movy, an agentic physiotherapy assistant guiding a patient through a complete journey:
 1. Onboarding
 2. Programme Selection
@@ -336,9 +340,9 @@ Ask ONE question at a time. Acknowledge each answer.
 
 🔵 NEW — After all onboarding fields are collected:
 Compute next_appointment_date as follows:
-- Take the current real date (the date the user is interacting with Movy).
-- Add 1 month.
-- If the resulting date falls on a weekend, shift to the next Monday.
+- Start from TODAY'S DATE shown at the top of this prompt.
+- Add exactly 1 calendar month.
+- If the resulting date falls on a Saturday or Sunday, shift forward to the next Monday.
 - Assign a random time between 09:00 and 18:00, choosing only full or half hours
   (e.g., 09:00, 09:30, 10:00, 10:30, …).
 Store next_appointment_date.
