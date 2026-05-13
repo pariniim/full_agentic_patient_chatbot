@@ -70,7 +70,6 @@ section[data-testid="stSidebar"]{display:none;}
 
 /* Header */
 .movy-header{text-align:center;padding:1rem 0 0.5rem;}
-
 .movy-header .logo{font-size:2.4rem;letter-spacing:-1px;font-weight:600;
   background:linear-gradient(135deg,#7c6af7 0%,#a78bfa 50%,#60a5fa 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
@@ -80,6 +79,17 @@ section[data-testid="stSidebar"]{display:none;}
     margin-top: 0.25rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
+}
+
+/* Sticky header wrapper — bleeds to phone edges, pins to top on scroll */
+.sticky-header {
+    position: sticky;
+    top: -60px;            /* pull up to cancel .block-container’s 60px top padding */
+    z-index: 200;
+    background: #FAF6F2;
+    margin: -60px -20px 0 -20px;   /* bleed to phone inner edges */
+    padding: 60px 20px 0.5rem 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 /* Phase progress */
@@ -535,11 +545,13 @@ def render_header():
             line_cls = "done" if i < cur else ""
             dots_html += f'<div class="phase-line {line_cls}" style="margin-bottom:1rem"></div>'
     st.markdown(f"""
-    <div class="movy-header">
-      <div class="logo">Movy</div>
-      <div class="tagline">Your physiotherapy companion</div>
+    <div class="sticky-header">
+      <div class="movy-header">
+        <div class="logo">Movy</div>
+        <div class="tagline">Your physiotherapy companion</div>
+      </div>
+      <div class="phase-bar">{dots_html}</div>
     </div>
-    <div class="phase-bar">{dots_html}</div>
     """, unsafe_allow_html=True)
 
 # The header and other elements will render inside the styled block-container
@@ -778,6 +790,11 @@ components.html("""
         bar.style.overflow    = 'hidden';
     }
     position();
+    // Scroll the phone to the latest chat bubble on every render
+    (function scrollToBottom() {
+        var phone = window.parent.document.querySelector('.block-container');
+        if (phone) { phone.scrollTop = phone.scrollHeight; }
+    })();
     window.parent.addEventListener('resize', position);
     new MutationObserver(position).observe(
         window.parent.document.body, {childList:true, subtree:true}
