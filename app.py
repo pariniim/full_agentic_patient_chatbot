@@ -400,10 +400,15 @@ Adapt your reply based on the classification:
     - Recommend rest.
     - Reassure that the physiotherapist will review.
     - Do NOT continue unless the user explicitly insists.
-    - Do NOT emit the introduce_exercise signal.
+    - Do NOT emit any signal.
+    - Do NOT mention Exercise 2.
 
-Step C: After delivering your adapted response (and ONLY if pain < 8 or no pain reported),
-introduce Exercise 2 warmly.
+⚠ CRITICAL: After delivering your adapted response, DO NOT emit any signal and DO NOT mention
+Exercise 2 yet. The UI will show a 'Continue to Exercise 2' button. Wait for the user to tap it.
+
+Step C: The user taps 'Continue to Exercise 2'.
+The UI sends the trigger: "I am ready to continue to Exercise 2."
+Only then, introduce Exercise 2 warmly.
 Say:
 "Great. Let's move on to your second exercise."
 
@@ -954,6 +959,43 @@ if user_input and user_input.strip():
     st.session_state.messages.append({"role": "assistant", "content": clean})
     process_signal(sig)
 
+    # After the user answers the mid-session check-in, advance to the
+    # "answered" state so the 'Continue to Exercise 2' button appears.
+    if st.session_state.get("in_session_step") == "ex1_checkin_pending":
+        st.session_state.in_session_step = "ex1_checkin_answered"
+
     ph.markdown(f'<div class="chat-row movy"><div class="bubble movy">{clean}</div></div>',
                 unsafe_allow_html=True)
     st.rerun()
+
+# ── "Continue to Exercise 2" button ─────────────────────────────────────────
+# Shown after Movy has responded to the mid-session check-in and the user is
+# ready (but has not yet tapped Continue). Hidden for pain ≥8 cases because
+# the LLM will not set this state when it advises a stop.
+if (
+    st.session_state.phase == "in_session"
+    and st.session_state.get("in_session_step") == "ex1_checkin_answered"
+):
+    st.markdown("<div style='margin-top:1.5rem;text-align:center;'>", unsafe_allow_html=True)
+    if st.button("▶  Continue to Exercise 2", key="continue_ex2"):
+        _trigger = "I am ready to continue to Exercise 2."
+        # Show the trigger as a user bubble
+        st.session_state.messages.append({"role": "user", "content": _trigger})
+        st.session_state.full_history.append({"role": "user", "content": _trigger})
+        typing_ph = st.empty()
+        typing_ph.markdown(
+            '<div class="chat-row movy"><div class="typing-indicator">'
+            '<span></span><span></span><span></span></div></div>',
+            unsafe_allow_html=True,
+        )
+        _reply = call_llm(st.session_state.full_history)
+        typing_ph.empty()
+        _clean, _sig = parse_signal(_reply)
+        st.session_state.full_history.append({"role": "assistant", "content": _clean})
+        st.session_state.messages.append({"role": "assistant", "content": _clean})
+        process_signal(_sig)
+        # Defensive: if the LLM didn't emit the signal, force state forward
+        if st.session_state.get("in_session_step") == "ex1_checkin_answered":
+            st.session_state.in_session_step = "ex2_ready"
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
