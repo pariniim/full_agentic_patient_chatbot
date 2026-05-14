@@ -257,23 +257,14 @@ section[data-testid="stSidebar"]{display:none;}
 /* No secondary buttons - all CTAs should be blue/white */
 
 
-/* Splash Screen — full-viewport centred layout */
+/* Splash Screen */
 .splash-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    width: 100%;
     text-align: center;
     gap: 2rem;
-    padding: 0;
-    margin: 0;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background: #FAF6F2;
-    z-index: 9000;
+    padding: 4rem 1rem;
 }
 .splash-logo {
     width: 200px;
@@ -637,14 +628,22 @@ def render_header():
     </div>
     """, unsafe_allow_html=True)
 
-# The header and other elements will render inside the styled block-container
+# ── Splash screen ──────────────────────────────────────────────────────────────────────
 if st.session_state.show_splash:
-    st.markdown('<div class="splash-container">', unsafe_allow_html=True)
-    st.image("assets/images/movy_logo1.png", width=220)
-    if st.button("Start Onboarding  →"):
-        st.session_state.show_splash = False
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Add vertical space to push content towards the centre
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    # Centre with columns: narrow | content | narrow
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.image("assets/images/movy_logo1.png", width=220)
+        st.write("")
+        if st.button("Start Onboarding  →", use_container_width=True):
+            st.session_state.show_splash = False
+            st.rerun()
 else:
     render_header()
     # ── Render chat history ───────────────────────────────────────────────────────
