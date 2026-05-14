@@ -110,7 +110,8 @@ section[data-testid="stSidebar"]{display:none;}
 
 /* Square exercise videos (st.video renders these) */
 .stVideo, [data-testid="stVideo"] {
-    width: 100% !important;
+    width: 70% !important;
+    margin: 0 auto !important;
     border-radius: 16px !important;
     overflow: hidden !important;
 }
