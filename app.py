@@ -759,6 +759,28 @@ def render_video_widget(n: int):
         )
 
 
+# ── Start Session button (shown after onboarding, before session begins) ──────
+if st.session_state.phase == "programme_selection":
+    st.markdown("<div style='margin-top:1.5rem;text-align:center;'>", unsafe_allow_html=True)
+    if st.button("▶  Start Session", key="start_session"):
+        msg = "I'm ready to start my session now."
+        st.session_state.messages.append({"role": "user", "content": msg})
+        st.session_state.full_history.append({"role": "user", "content": msg})
+        typing_ph = st.empty()
+        typing_ph.markdown(
+            '<div class="chat-row movy"><div class="typing-indicator">'
+            '<span></span><span></span><span></span></div></div>',
+            unsafe_allow_html=True,
+        )
+        reply = call_llm(st.session_state.full_history)
+        typing_ph.empty()
+        clean, sig = parse_signal(reply)
+        st.session_state.full_history.append({"role": "assistant", "content": clean})
+        st.session_state.messages.append({"role": "assistant", "content": clean})
+        process_signal(sig)
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # Show video widget when in-session
 if st.session_state.phase == "in_session":
     step = st.session_state.in_session_step
