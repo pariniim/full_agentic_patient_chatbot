@@ -1018,9 +1018,17 @@ if user_input and user_input.strip():
     st.session_state.messages.append({"role": "assistant", "content": clean})
     process_signal(sig)
 
-    # State transitions for the mid-session check-in are now entirely
-    # signal-driven (checkin_pain_followup / checkin_resolved in process_signal).
-    # No hard-coded fallback here to avoid overriding the LLM's decision.
+    # Defensive fallbacks: if the LLM responded but forgot to emit a signal,
+    # advance the state manually so the flow never gets stuck.
+    _step = st.session_state.get("in_session_step")
+    if _step == "ex1_checkin_pending":
+        # LLM gave its check-in reply without emitting checkin_resolved or
+        # checkin_pain_followup.  Default to showing the Continue button.
+        st.session_state.in_session_step = "ex1_checkin_answered"
+    elif _step == "ex1_pain_rating_pending":
+        # LLM responded to the pain rating without emitting checkin_resolved.
+        # Since it acknowledged and moved on, assume pain < 8 and show button.
+        st.session_state.in_session_step = "ex1_checkin_answered"
 
     ph.markdown(f'<div class="chat-row movy"><div class="bubble movy">{clean}</div></div>',
                 unsafe_allow_html=True)
