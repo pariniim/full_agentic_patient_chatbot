@@ -720,7 +720,8 @@ def render_video_widget(n: int):
         pass  # Completion shown as a user chat bubble; no widget needed here
 
 
-# \u2500\u2500 Splash screen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif st.session_state.show_splash:
+# ── Splash screen ────────────────────────────────────────────────────────────
+if st.session_state.show_splash:
     st.write("")
     st.write("")
     st.write("")
