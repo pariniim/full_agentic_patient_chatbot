@@ -317,6 +317,30 @@ section[data-testid="stSidebar"]{display:none;}
     width: 180px;
     margin-bottom: 1rem;
 }
+
+/* Remove phone frame on splash */
+body.splash-mode .block-container {
+    background: transparent !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+body.splash-mode .stApp::before,
+body.splash-mode .stApp::after {
+    display: none !important;
+}
+body.splash-mode #movy-phone-overlay {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -673,6 +697,26 @@ def render_header():
       </div>
       <div class="phase-bar">{dots_html}</div>
     </div>
+    """, unsafe_allow_html=True)
+
+# Inject / remove the splash-mode body class via JS
+if st.session_state.show_splash:
+    st.markdown("""
+    <script>
+    (function(){
+        var doc = window.parent ? window.parent.document : document;
+        doc.body.classList.add('splash-mode');
+    })();
+    </script>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <script>
+    (function(){
+        var doc = window.parent ? window.parent.document : document;
+        doc.body.classList.remove('splash-mode');
+    })();
+    </script>
     """, unsafe_allow_html=True)
 
 # The header and other elements will render inside the styled block-container
