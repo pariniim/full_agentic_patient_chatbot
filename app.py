@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     background: #FAF6F2 !important;
     max-width: 680px !important;
     margin: 0 auto !important;
-    padding: 6rem 1.5rem 6rem 1.5rem !important;
+    padding: 12rem 1.5rem 6rem 1.5rem !important;
     border: none !important;
     box-shadow: none !important;
 }
@@ -805,21 +805,31 @@ if st.session_state.phase == "pt_summary":
           </div>
         </div>""", unsafe_allow_html=True)
 
-# ── Inject placeholder colour (components.html actually executes JS) ──────────
-components.html("""
+# ── JS helpers: placeholder colour + scroll-to-latest-bubble ────────────────
+_is_splash = "true" if st.session_state.show_splash else "false"
+components.html(f"""
 <script>
-(function(){
+(function(){{
+    var IS_SPLASH = {_is_splash};
     var doc = window.parent.document;
-    if (doc.getElementById('movy-placeholder-style')) return;
-    var s = doc.createElement('style');
-    s.id = 'movy-placeholder-style';
-    s.textContent = [
-        '.stChatInput textarea::placeholder { color: #B4BACF !important; opacity: 1 !important; }',
-        '.stChatInput textarea::-webkit-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
-        '.stChatInput textarea:-ms-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
-    ].join('');
-    doc.head.appendChild(s);
-})();
+
+    // 1. Inject placeholder colour for the chat input
+    if (!doc.getElementById('movy-placeholder-style')) {{
+        var s = doc.createElement('style');
+        s.id = 'movy-placeholder-style';
+        s.textContent = [
+            '.stChatInput textarea::placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
+            '.stChatInput textarea::-webkit-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
+            '.stChatInput textarea:-ms-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
+        ].join('');
+        doc.head.appendChild(s);
+    }}
+
+    // 2. Scroll to the bottom so the latest chat bubble is always visible
+    if (!IS_SPLASH) {{
+        window.parent.scrollTo({{ top: doc.body.scrollHeight, behavior: 'smooth' }});
+    }}
+}})();
 </script>
 """, height=0)
 
