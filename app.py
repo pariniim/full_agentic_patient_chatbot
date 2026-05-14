@@ -1053,9 +1053,9 @@ components.html(f"""
     var synth = window.speechSynthesis;
     
     // Ensure voice starts OFF at the beginning of onboarding
-    if (IS_SPLASH) {
+    if (IS_SPLASH) {{
         storage.setItem('movy_tts_enabled', 'false');
-    }
+    }}
     var ttsEnabled = storage.getItem('movy_tts_enabled') === 'true';
 
     function initVoice() {{
