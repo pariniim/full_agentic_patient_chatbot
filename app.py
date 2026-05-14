@@ -654,7 +654,7 @@ if st.session_state.show_splash:
             # Inline SVG via data URI — stays vector, renders crisp at any DPI
             st.markdown(
                 f'<img src="data:image/svg+xml;base64,{_svg_b64}" '
-                f'style="width:320px;max-width:100%;display:block;margin:0 auto 1rem auto;" '
+                f'style="width:460px;max-width:100%;display:block;margin:0 auto 1rem auto;" '
                 f'alt="Movy logo" />',
                 unsafe_allow_html=True,
             )
