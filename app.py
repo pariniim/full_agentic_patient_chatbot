@@ -778,8 +778,26 @@ if st.session_state.phase == "programme_selection":
         st.session_state.full_history.append({"role": "assistant", "content": clean})
         st.session_state.messages.append({"role": "assistant", "content": clean})
         process_signal(sig)
+
+        # If exercises were just selected, immediately get the Exercise 1 intro
+        # so the video widget appears right away without another user interaction.
+        if st.session_state.phase == "in_session" and st.session_state.in_session_step == "intro":
+            typing_ph2 = st.empty()
+            typing_ph2.markdown(
+                '<div class="chat-row movy"><div class="typing-indicator">'
+                '<span></span><span></span><span></span></div></div>',
+                unsafe_allow_html=True,
+            )
+            reply2 = call_llm(st.session_state.full_history)
+            typing_ph2.empty()
+            clean2, sig2 = parse_signal(reply2)
+            st.session_state.full_history.append({"role": "assistant", "content": clean2})
+            st.session_state.messages.append({"role": "assistant", "content": clean2})
+            process_signal(sig2)
+
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # Show video widget when in-session
 if st.session_state.phase == "in_session":
