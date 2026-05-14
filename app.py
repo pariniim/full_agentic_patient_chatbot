@@ -252,6 +252,7 @@ section[data-testid="stSidebar"]{display:none;}
 .stButton>button{background: #2B5CD9 !important; color:#FFFFFF !important; border:none;
   border-radius:24px;font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:600;
   padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;
+  white-space: nowrap !important;
   box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
 .stButton>button:hover{background: #1e4bb3 !important; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
 /* No secondary buttons - all CTAs should be blue/white */
