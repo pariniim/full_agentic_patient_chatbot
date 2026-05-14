@@ -389,22 +389,34 @@ Classify their response as one of: energetic / tired / pain / unsure / positive 
 Store: mid_session_energy_level, mid_session_pain, mid_session_confusion.
 
 Adapt your reply based on the classification:
-- energetic / positive → acknowledge their energy warmly, praise their effort.
-- tired → offer empathy, remind them the next exercise is lighter or encourage a short pause.
-- unsure → reassure them that it is normal and encourage gently.
-- no_response → gently acknowledge and proceed.
-- pain → ask them to rate it 1–10. Then:
-  - If pain < 8: acknowledge, remind them to go at their own pace.
+
+If the response is energetic / positive / tired / unsure / no_response:
+  - Respond warmly as instructed above.
+  - Then emit:
+    <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
+
+If the response mentions pain (any pain at all):
+  - Do NOT emit checkin_resolved yet.
+  - Ask the user to rate their pain on a scale of 1–10.
+  - Then emit:
+    <MOVY_SIGNAL>{{"action":"checkin_pain_followup"}}</MOVY_SIGNAL>
+
+Step B3: When the user replies with a pain rating (after checkin_pain_followup):
+  - If pain < 8:
+    - Acknowledge warmly, remind them to go at their own pace.
+    - Then emit:
+      <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
   - If pain ≥ 8 (severe):
     - Advise immediate stop.
     - Recommend rest.
     - Reassure that the physiotherapist will review.
     - Do NOT continue unless the user explicitly insists.
-    - Do NOT emit any signal.
     - Do NOT mention Exercise 2.
+    - Then emit:
+      <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":false}}</MOVY_SIGNAL>
 
-⚠ CRITICAL: After delivering your adapted response, DO NOT emit any signal and DO NOT mention
-Exercise 2 yet. The UI will show a 'Continue to Exercise 2' button. Wait for the user to tap it.
+⚠ CRITICAL: After emitting checkin_resolved, DO NOT emit any other signal and DO NOT mention
+Exercise 2 yet. The UI will show a 'Continue to Exercise 2' button only if proceed is true.
 
 Step C: The user taps 'Continue to Exercise 2'.
 The UI sends the trigger: "I am ready to continue to Exercise 2."
@@ -521,6 +533,18 @@ def process_signal(sig: dict):
     elif a == "introduce_exercise":
         n = sig.get("exercise", 1)
         st.session_state.in_session_step = f"ex{n}_ready"
+    elif a == "checkin_pain_followup":
+        # LLM detected pain in check-in reply and has asked for a rating.
+        # Keep the button hidden until we know the rating is safe.
+        st.session_state.in_session_step = "ex1_pain_rating_pending"
+    elif a == "checkin_resolved":
+        # LLM has fully processed the check-in (or pain rating).
+        if sig.get("proceed", True):
+            # Pain < 8 or non-pain response — show the Continue button.
+            st.session_state.in_session_step = "ex1_checkin_answered"
+        else:
+            # Pain ≥ 8 — block progression entirely.
+            st.session_state.in_session_step = "ex1_pain_stopped"
     elif a == "session_complete":
         st.session_state.phase = "post_checkin"
         st.session_state.in_session_step = "done"
@@ -987,10 +1011,9 @@ if user_input and user_input.strip():
     st.session_state.messages.append({"role": "assistant", "content": clean})
     process_signal(sig)
 
-    # After the user answers the mid-session check-in, advance to the
-    # "answered" state so the 'Continue to Exercise 2' button appears.
-    if st.session_state.get("in_session_step") == "ex1_checkin_pending":
-        st.session_state.in_session_step = "ex1_checkin_answered"
+    # State transitions for the mid-session check-in are now entirely
+    # signal-driven (checkin_pain_followup / checkin_resolved in process_signal).
+    # No hard-coded fallback here to avoid overriding the LLM's decision.
 
     ph.markdown(f'<div class="chat-row movy"><div class="bubble movy">{clean}</div></div>',
                 unsafe_allow_html=True)
