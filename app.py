@@ -266,9 +266,12 @@ section[data-testid="stSidebar"]{display:none;}
     gap: 2rem;
     padding: 4rem 1rem;
 }
-.splash-logo {
-    width: 200px;
-    margin-bottom: 0.5rem;
+/* Crisp high-res logo rendering */
+[data-testid="stImage"] img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: high-quality;
+    -ms-interpolation-mode: bicubic;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -637,9 +640,9 @@ if st.session_state.show_splash:
     st.write("")
     st.write("")
     # Centre with columns: narrow | content | narrow
-    _, col, _ = st.columns([1, 2, 1])
+    _, col, _ = st.columns([1, 3, 1])
     with col:
-        st.image("assets/images/movy_logo1.png", width=220)
+        st.image("assets/images/movy_logo1.png", width=320)
         st.write("")
         if st.button("Start Onboarding  →", use_container_width=True):
             st.session_state.show_splash = False
