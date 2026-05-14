@@ -14,59 +14,22 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 .stApp {
-    background: #d8d1ca; /* Outside the phone */
+    background: #FAF6F2;
     color: #1a1d27;
 }
 #MainMenu,footer,header{visibility:hidden;}
 
-/* The Phone Screen */
+/* Main content area — clean, no phone frame */
 .block-container {
     background: #FAF6F2 !important;
-    max-width: 410px !important;
-    height: 880px !important;
-    margin: 40px auto !important;
-    padding: 185px 20px 110px 20px !important; /* top = fixed header height; bottom = input bar */
-    border: 12px solid #2d2d2d; /* Titanium frame */
-    border-radius: 60px;
-    box-shadow: 0 50px 100px rgba(0,0,0,0.3);
-    position: relative;
-    overflow-y: auto !important;
-    scrollbar-width: none;
-    display: flex !important;
-    flex-direction: column !important;
+    max-width: 680px !important;
+    margin: 0 auto !important;
+    padding: 6rem 1.5rem 6rem 1.5rem !important;
+    border: none !important;
+    box-shadow: none !important;
 }
-.block-container::-webkit-scrollbar { display: none; }
 
 section[data-testid="stSidebar"]{display:none;}
-
-/* Dynamic Island */
-.stApp::before {
-    content: "";
-    position: fixed;
-    top: 55px; /* Adjust based on margin */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 35px;
-    background: #000;
-    border-radius: 20px;
-    z-index: 9999;
-}
-
-/* Home Indicator */
-.stApp::after {
-    content: "";
-    position: fixed;
-    bottom: 55px; /* Adjust based on margin */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 5px;
-    background: #000;
-    border-radius: 10px;
-    opacity: 0.2;
-    z-index: 9999;
-}
 
 
 /* Header */
@@ -82,15 +45,17 @@ section[data-testid="stSidebar"]{display:none;}
     text-transform: uppercase;
 }
 
-/* Header — position:fixed applied by JS; these are visual-only styles */
+/* Sticky header — fixed to the top of the viewport */
 .sticky-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     background: #FAF6F2;
     padding: 10px 20px 0.75rem 20px;
     border-bottom: 1px solid rgba(0,0,0,0.06);
-    border-radius: 48px 48px 0 0;
     box-sizing: border-box;
     z-index: 8000;
-    overflow: hidden;
 }
 
 /* Phase progress */
@@ -157,14 +122,16 @@ section[data-testid="stSidebar"]{display:none;}
     display: block !important;
 }
 
-/* ── Chat Input Bar — inside the phone, border overlay renders above it ── */
+/* Chat Input Bar */
 .stChatInput {
     position: fixed !important;
-    z-index: 5000 !important;           /* below overlay (10000) */
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 5000 !important;
     background: #FFFFFF !important;
     padding: 10px 14px 24px 14px !important;
-    box-shadow: none !important;
-    /* left / bottom / width / border-radius set by JS */
+    box-shadow: 0 -1px 0 rgba(0,0,0,0.06) !important;
 }
 /* Every wrapper div Streamlit nests inside the bar → all #F0F2F7 */
 .stChatInput div,
@@ -241,19 +208,7 @@ section[data-testid="stSidebar"]{display:none;}
 }
 
 
-/* Bottom Home Indicator */
-.home-indicator {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 5px;
-    background: #000;
-    border-radius: 10px;
-    opacity: 0.2;
-    z-index: 1000;
-}
+
 
 ::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -302,44 +257,27 @@ section[data-testid="stSidebar"]{display:none;}
 /* No secondary buttons - all CTAs should be blue/white */
 
 
-/* Splash Screen */
+/* Splash Screen — full-viewport centred layout */
 .splash-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    min-height: 100vh;
+    width: 100%;
     text-align: center;
     gap: 2rem;
-    padding-bottom: 4rem;
+    padding: 0;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #FAF6F2;
+    z-index: 9000;
 }
 .splash-logo {
-    width: 180px;
-    margin-bottom: 1rem;
-}
-
-/* Remove phone frame on splash */
-body.splash-mode .block-container {
-    background: transparent !important;
-    max-width: 100% !important;
-    height: 100vh !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-body.splash-mode .stApp::before,
-body.splash-mode .stApp::after {
-    display: none !important;
-}
-body.splash-mode #movy-phone-overlay {
-    display: none !important;
+    width: 200px;
+    margin-bottom: 0.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -699,33 +637,6 @@ def render_header():
     </div>
     """, unsafe_allow_html=True)
 
-# ── Conditionally strip the phone frame on splash (pure CSS — no JS needed) ──
-if st.session_state.show_splash:
-    st.markdown("""
-    <style>
-    /* Hide Dynamic Island & Home Indicator pseudo-elements */
-    .stApp::before, .stApp::after { display: none !important; }
-    /* Reset phone frame so splash is full-page */
-    .block-container {
-        background: transparent !important;
-        max-width: 100vw !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        min-height: 100vh !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
 # The header and other elements will render inside the styled block-container
 if st.session_state.show_splash:
     st.markdown('<div class="splash-container">', unsafe_allow_html=True)
@@ -870,93 +781,21 @@ if st.session_state.phase == "pt_summary":
           </div>
         </div>""", unsafe_allow_html=True)
 
-# ── Snap input bar to phone bottom + placeholder colour ──────────────────────
-_is_splash = str(st.session_state.show_splash).lower()
-components.html(f"""
+# ── Inject placeholder colour (components.html actually executes JS) ──────────
+components.html("""
 <script>
-(function snapInput() {{
-    var IS_SPLASH = {_is_splash};
-
-    // Inject placeholder colour into the parent document (bypasses Streamlit CSS scope)
-    (function injectStyle() {{
-        var doc = window.parent.document;
-        if (doc.getElementById('movy-placeholder-style')) return;
-        var s = doc.createElement('style');
-        s.id = 'movy-placeholder-style';
-        s.textContent = [
-            '.stChatInput textarea::placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-            '.stChatInput textarea::-webkit-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-            '.stChatInput textarea:-ms-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-        ].join('');
-        doc.head.appendChild(s);
-    }})();
-
-    function position() {{
-        var doc = window.parent.document;
-        var phone = doc.querySelector('.block-container');
-        var bar   = doc.querySelector('[data-testid="stChatInput"]')
-                   || doc.querySelector('.stChatInput');
-
-        // ── Hide/remove overlay during splash ──────────────────────────────
-        var overlay = doc.getElementById('movy-phone-overlay');
-        if (IS_SPLASH) {{
-            if (overlay) overlay.style.display = 'none';
-            return;
-        }}
-
-        if (!phone) return;
-        var r = phone.getBoundingClientRect();
-
-        // ── Phone border overlay – redraws the titanium border above input bar
-        if (!overlay) {{
-            overlay = doc.createElement('div');
-            overlay.id = 'movy-phone-overlay';
-            overlay.style.position    = 'fixed';
-            overlay.style.pointerEvents = 'none';
-            overlay.style.border      = '12px solid #2d2d2d';
-            overlay.style.borderRadius = '60px';
-            overlay.style.zIndex      = '10000';
-            overlay.style.background  = 'transparent';
-            overlay.style.boxSizing   = 'border-box';
-            doc.body.appendChild(overlay);
-        }}
-        overlay.style.display = 'block';
-        overlay.style.top    = r.top  + 'px';
-        overlay.style.left   = r.left + 'px';
-        overlay.style.width  = r.width  + 'px';
-        overlay.style.height = r.height + 'px';
-
-        // ── Fix header to the phone's inner top edge
-        var header = doc.querySelector('.sticky-header');
-        if (header) {{
-            header.style.position = 'fixed';
-            header.style.top      = (r.top  + 12) + 'px';
-            header.style.left     = (r.left + 12) + 'px';
-            header.style.width    = (r.width - 24) + 'px';
-            header.style.zIndex   = '8000';
-        }}
-
-        if (!bar) return;
-        // ── Position input bar at the phone's bottom (inside the frame)
-        bar.style.left         = r.left + 'px';
-        bar.style.width        = r.width + 'px';
-        bar.style.bottom       = (window.parent.innerHeight - r.bottom) + 'px';
-        bar.style.top          = 'auto';
-        bar.style.borderRadius = '0 0 48px 48px';
-        bar.style.overflow     = 'hidden';
-    }}
-    position();
-    // Scroll the phone to the latest chat bubble on every render
-    (function scrollToBottom() {{
-        if (IS_SPLASH) return;
-        var phone = window.parent.document.querySelector('.block-container');
-        if (phone) {{ phone.scrollTop = phone.scrollHeight; }}
-    }})();
-    window.parent.addEventListener('resize', position);
-    new MutationObserver(position).observe(
-        window.parent.document.body, {{childList:true, subtree:true}}
-    );
-}})();
+(function(){
+    var doc = window.parent.document;
+    if (doc.getElementById('movy-placeholder-style')) return;
+    var s = doc.createElement('style');
+    s.id = 'movy-placeholder-style';
+    s.textContent = [
+        '.stChatInput textarea::placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+        '.stChatInput textarea::-webkit-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+        '.stChatInput textarea:-ms-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+    ].join('');
+    doc.head.appendChild(s);
+})();
 </script>
 """, height=0)
 
