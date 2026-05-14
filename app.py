@@ -219,6 +219,68 @@ section[data-testid="stSidebar"]{display:none;}
     transform: rotate(90deg) !important;
 }
 
+/* Voice Controls */
+.voice-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+}
+
+.voice-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: #B4BACF;
+    border: 1px solid #E0E2E7;
+}
+
+.voice-btn:hover {
+    background: #F0F2F7;
+    color: #2B5CD9;
+}
+
+.voice-btn.active {
+    background: #2B5CD9;
+    color: #FFFFFF;
+    border-color: #2B5CD9;
+    animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.voice-btn.speaker-on {
+    color: #2B5CD9;
+    background: #EBF0FF;
+    border-color: #2B5CD9;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0.4); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(43, 92, 217, 0); }
+  100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0); }
+}
+
+.listening-indicator {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2B5CD9;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(43,92,217,0.3);
+}
+
 
 
 
@@ -927,7 +989,6 @@ if st.session_state.phase == "pt_summary":
             <span class="summary-val">{flag_html}</span>
           </div>
         </div>""", unsafe_allow_html=True)
-
 # ── JS helpers: placeholder colour + scroll + video play/pause control ─────────
 _is_splash  = "true"  if st.session_state.show_splash else "false"
 _ex1_state  = st.session_state.ex_state.get(1, "idle")
@@ -985,11 +1046,109 @@ components.html(f"""
         }});
     }}
 
+    // 4. Voice Interaction (STT & TTS)
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    var synth = window.speechSynthesis;
+    var ttsEnabled = storage.getItem('movy_tts_enabled') === 'true';
+
+    function initVoice() {{
+        if (!recognition) return;
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {{
+            var text = event.results[0][0].transcript;
+            var input = doc.querySelector('.stChatInput textarea');
+            var btn = doc.querySelector('.stChatInput button');
+            if (input && btn) {{
+                input.value = text;
+                input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                setTimeout(function() {{ btn.click(); }}, 100);
+            }}
+        }};
+
+        recognition.onend = function() {{
+            var mic = doc.getElementById('movy-mic-btn');
+            if (mic) mic.classList.remove('active');
+            var indicator = doc.getElementById('movy-listening-indicator');
+            if (indicator) indicator.style.display = 'none';
+        }};
+    }}
+
+    function speak(text) {{
+        if (!ttsEnabled || !synth) return;
+        synth.cancel(); 
+        var ut = new SpeechSynthesisUtterance(text);
+        var voices = synth.getVoices();
+        var preferred = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
+        if (preferred) ut.voice = preferred;
+        ut.pitch = 1.0;
+        ut.rate = 0.95;
+        synth.speak(ut);
+    }}
+
+    function injectVoiceUI() {{
+        var container = doc.querySelector('.stChatInput > div');
+        if (!container || doc.getElementById('movy-voice-ctrls')) return;
+
+        var ctrls = doc.createElement('div');
+        ctrls.id = 'movy-voice-ctrls';
+        ctrls.className = 'voice-controls';
+        ctrls.innerHTML = `
+            <div id="movy-listening-indicator" class="listening-indicator">Listening...</div>
+            <button id="movy-speaker-btn" class="voice-btn ${{ttsEnabled ? 'speaker-on' : ''}}" title="Toggle Voice Output">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            </button>
+            <button id="movy-mic-btn" class="voice-btn" title="Speak Answer">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            </button>
+        `;
+        container.insertBefore(ctrls, container.firstChild);
+
+        doc.getElementById('movy-mic-btn').onclick = function() {{
+            if (!recognition) return;
+            this.classList.add('active');
+            doc.getElementById('movy-listening-indicator').style.display = 'block';
+            recognition.start();
+        }};
+
+        doc.getElementById('movy-speaker-btn').onclick = function() {{
+            ttsEnabled = !ttsEnabled;
+            storage.setItem('movy_tts_enabled', ttsEnabled);
+            this.classList.toggle('speaker-on', ttsEnabled);
+            if (ttsEnabled) speak("Voice output enabled.");
+            else synth.cancel();
+        }};
+    }}
+
+    function readNewMessages() {{
+        var bubbles = doc.querySelectorAll('.bubble.movy');
+        if (bubbles.length === 0) return;
+        var lastBubble = bubbles[bubbles.length - 1];
+        var text = lastBubble.innerText;
+        var lastRead = storage.getItem('movy_last_read');
+        if (text !== lastRead) {{
+            storage.setItem('movy_last_read', text);
+            speak(text);
+        }}
+    }}
+
+    initVoice();
     applyVideoStates();
-    // Re-apply whenever Streamlit swaps DOM nodes
-    new MutationObserver(applyVideoStates).observe(
-        doc.body, {{childList: true, subtree: true}}
-    );
+    injectVoiceUI();
+    
+    var observer = new MutationObserver(function() {{
+        applyVideoStates();
+        injectVoiceUI();
+        readNewMessages();
+    }});
+    observer.observe(doc.body, {{childList: true, subtree: true}});
+    
+    // Periodically check for UI injection in case observer misses it
+    setInterval(injectVoiceUI, 1000);
 }})();
 </script>
 """, height=0)
