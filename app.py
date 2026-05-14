@@ -1049,21 +1049,38 @@ components.html(f"""
 
     // 4. Voice Interaction (STT & TTS)
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    var recognition = null;
     var synth = window.speechSynthesis;
+    
+    // Ensure voice starts OFF at the beginning of onboarding
+    if (IS_SPLASH) {
+        storage.setItem('movy_tts_enabled', 'false');
+    }
     var ttsEnabled = storage.getItem('movy_tts_enabled') === 'true';
 
     function initVoice() {{
-        if (!recognition) {{
+        if (!SpeechRecognition) {{
             console.warn("Movy: SpeechRecognition API not supported in this browser.");
             return;
         }}
+        
+        // Always recreate recognition to ensure fresh state
+        if (recognition) try {{ recognition.abort(); }} catch(e) {{}}
+        recognition = new SpeechRecognition();
+        
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
 
         recognition.onstart = function() {{
             console.log("Movy: Speech Recognition started...");
+            var mic = doc.getElementById('movy-mic-btn');
+            if (mic) mic.classList.add('active');
+            var indicator = doc.getElementById('movy-listening-indicator');
+            if (indicator) {{
+                indicator.innerText = "Listening...";
+                indicator.style.display = 'block';
+            }}
         }};
 
         recognition.onresult = function(event) {{
@@ -1086,7 +1103,7 @@ components.html(f"""
             var indicator = doc.getElementById('movy-listening-indicator');
             if (indicator) {{
                 indicator.innerText = "Error: " + event.error;
-                setTimeout(function() {{ indicator.style.display = 'none'; indicator.innerText = "Listening..."; }}, 3000);
+                setTimeout(function() {{ indicator.style.display = 'none'; }}, 3000);
             }}
         }};
 
@@ -1101,42 +1118,35 @@ components.html(f"""
 
     function speak(text) {{
         if (!ttsEnabled || !synth) return;
-        synth.cancel(); 
-        var ut = new SpeechSynthesisUtterance(text);
-        
-        // Wait for voices to be loaded (some browsers load them asynchronously)
-        var voices = synth.getVoices();
-        
-        // Prioritized list of high-quality female voices
-        var preferredNames = [
-            'Google UK English Female',
-            'Google US English Female',
-            'Microsoft Zira',
-            'Samantha',
-            'Victoria',
-            'Fiona'
-        ];
-        
-        var voice = null;
-        // 1. Try preferred names
-        for (var i = 0; i < preferredNames.length; i++) {{
-            voice = voices.find(v => v.name.includes(preferredNames[i]));
-            if (voice) break;
-        }}
-        
-        // 2. Fallback to any voice with 'Female' in the name
-        if (!voice) {{
-            voice = voices.find(v => v.name.toLowerCase().includes('female'));
-        }}
-        
-        // 3. Fallback to first available
-        if (!voice) voice = voices[0];
-
-        if (voice) ut.voice = voice;
-        ut.pitch = 1.05; // Slightly higher pitch for a warmer tone
-        ut.rate = 0.95;
-        synth.speak(ut);
+        try {{
+            synth.cancel(); 
+            var ut = new SpeechSynthesisUtterance(text);
+            var voices = synth.getVoices();
+            var preferredNames = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
+            var voice = null;
+            for (var i = 0; i < preferredNames.length; i++) {{
+                voice = voices.find(v => v.name.includes(preferredNames[i]));
+                if (voice) break;
+            }}
+            if (!voice) voice = voices.find(v => v.name.toLowerCase().includes('female'));
+            if (!voice) voice = voices[0];
+            if (voice) ut.voice = voice;
+            ut.pitch = 1.05;
+            ut.rate = 0.95;
+            synth.speak(ut);
+        }} catch(e) {{ console.error("Movy TTS Error:", e); }}
     }}
+
+    // Chrome/Safari requirement: prime the synth on first user gesture
+    function primeSpeech() {{
+        if (synth) {{
+            var silent = new SpeechSynthesisUtterance("");
+            synth.speak(silent);
+            console.log("Movy: Speech primed.");
+        }}
+        doc.removeEventListener('click', primeSpeech);
+    }}
+    doc.addEventListener('click', primeSpeech);
 
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
@@ -1156,33 +1166,20 @@ components.html(f"""
         `;
         container.insertBefore(ctrls, container.firstChild);
 
-        doc.getElementById('movy-mic-btn').onclick = function() {{
-            if (!recognition) {{
-                alert("Speech recognition is not supported in this browser.");
-                return;
-            }}
+        doc.getElementById('movy-mic-btn').onclick = function(e) {{
+            e.preventDefault(); e.stopPropagation();
+            if (!recognition) initVoice();
+            if (!recognition) return;
             
-            var isActive = this.classList.contains('active');
-            
-            if (isActive) {{
+            if (this.classList.contains('active')) {{
                 recognition.stop();
-                console.log("Movy: Manual stop requested.");
             }} else {{
-                try {{
-                    recognition.start();
-                    this.classList.add('active');
-                    var indicator = doc.getElementById('movy-listening-indicator');
-                    if (indicator) {{
-                        indicator.innerText = "Listening...";
-                        indicator.style.display = 'block';
-                    }}
-                }} catch (e) {{
-                    console.warn("Movy: Recognition already started or error: ", e);
-                }}
+                try {{ recognition.start(); }} catch (err) {{ console.warn(err); }}
             }}
         }};
 
-        doc.getElementById('movy-speaker-btn').onclick = function() {{
+        doc.getElementById('movy-speaker-btn').onclick = function(e) {{
+            e.preventDefault(); e.stopPropagation();
             ttsEnabled = !ttsEnabled;
             storage.setItem('movy_tts_enabled', ttsEnabled);
             this.classList.toggle('speaker-on', ttsEnabled);
@@ -1190,6 +1187,8 @@ components.html(f"""
             else synth.cancel();
         }};
     }}
+
+    }
 
     function readNewMessages() {{
         var bubbles = doc.querySelectorAll('.bubble.movy');
