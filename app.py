@@ -431,10 +431,14 @@ Then emit:
 ══════════════════════════════════════
 PHASE 4 — POST-SESSION CHECK-IN
 ══════════════════════════════════════
-Ask: "Whenever you're ready, [preferred_name], we can do a quick check-in."
+Movy begins Phase 4 PROACTIVELY — do not wait for the user to speak first.
 
-If 15+ minutes have passed before the user responds, adapt tone:
-"Welcome back. Since some time has passed, let's do a quick check-in."
+Announce the check-in warmly and immediately, for example:
+"Great — quick check-in. Four questions and you're done."
+Then ask Q1 straight away.
+
+Exception: if 15+ minutes have passed since session_complete, adapt tone:
+"Welcome back! Since some time has passed, let's do a quick check-in — just four questions."
 
 Collect in order:
 Q1 — Adherence (all / partial / none). If none → skip Q2+Q3.
@@ -696,6 +700,30 @@ def render_video_widget(n: int):
         # cannot appear until the user has actually answered.
         if n == 1 and st.session_state.in_session_step != "ex2_ready":
             st.session_state.in_session_step = "ex1_checkin_pending"
+
+        # After Exercise 2 is marked complete, proactively start Phase 4
+        # with a silent trigger — Movy announces the check-in and asks Q1
+        # without waiting for the user to type anything.
+        if n == 2 and st.session_state.phase == "post_checkin":
+            typing_ph2 = st.empty()
+            typing_ph2.markdown(
+                '<div class="chat-row movy"><div class="typing-indicator">'
+                '<span></span><span></span><span></span></div></div>',
+                unsafe_allow_html=True,
+            )
+            _checkin_trigger = "Please start the post-session check-in now."
+            _h2 = [*st.session_state.full_history,
+                   {"role": "user", "content": _checkin_trigger}]
+            reply2 = call_llm(_h2)
+            typing_ph2.empty()
+            clean2, sig2 = parse_signal(reply2)
+            # Add trigger + reply to history for context continuity
+            st.session_state.full_history.append({"role": "user", "content": _checkin_trigger})
+            st.session_state.full_history.append({"role": "assistant", "content": clean2})
+            if clean2.strip():
+                st.session_state.messages.append({"role": "assistant", "content": clean2})
+            process_signal(sig2)
+
         st.rerun()
 
     if state == "idle":
