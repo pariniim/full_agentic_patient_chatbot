@@ -373,13 +373,13 @@ Then emit:
 
 UI behaviour:
 - Play “Exercise 1” video.
-- Automatically start ambient music (assets/audio/ambient.mp3).
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
 Step B: When the user marks Exercise 1 as complete:
-Ask the mid-session check-in question:
-"How is it going?"
+Address the user by their preferred_name and ask the mid-session check-in question warmly.
+For example: "Well done, [preferred_name]! How are you feeling?"
+(Always use their actual preferred_name, never the placeholder.)
 
 Classify response as: energetic / tired / pain / unsure / positive / no_response.
 Store: mid_session_energy_level, mid_session_pain, mid_session_confusion.
@@ -400,7 +400,6 @@ Then emit:
 
 UI behaviour:
 - Play “Exercise 2” video.
-- Automatically start ambient music (assets/audio/ambient.mp3).
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
@@ -504,20 +503,12 @@ def process_signal(sig: dict):
     elif a == "session_complete":
         st.session_state.phase = "post_checkin"
         st.session_state.in_session_step = "done"
-        st.session_state.music_playing = False
         if "session_end_time" not in st.session_state:
             st.session_state.session_end_time = time.time()
     elif a == "generate_summary":
         st.session_state.phase = "pt_summary"
         st.session_state.patient_data["summary"] = sig.get("summary", {})
 
-# ── Audio loader ──────────────────────────────────────────────────────────────
-@st.cache_data(show_spinner=False)
-def load_audio_b64() -> str | None:
-    p = Path("assets/audio/ambient.mp3")
-    if p.exists():
-        return base64.b64encode(p.read_bytes()).decode()
-    return None
 
 # ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
 @st.cache_data(show_spinner=False)
@@ -609,8 +600,6 @@ if "full_history" not in st.session_state:
     st.session_state.full_history = [{"role": "system", "content": _session_prompt}]
 if "in_session_step" not in st.session_state:
     st.session_state.in_session_step = "intro"
-if "music_playing" not in st.session_state:
-    st.session_state.music_playing = False
 if "ex_state" not in st.session_state:
     st.session_state.ex_state = {1: "idle", 2: "idle"}
 
@@ -669,7 +658,6 @@ def render_video_widget(n: int):
     def _mark_complete():
         """Shared handler for marking an exercise done."""
         st.session_state.ex_state[n] = "complete"
-        st.session_state.music_playing = False
         msg = f"I have completed {name}."
         st.session_state.messages.append({"role": "user", "content": msg})
         st.session_state.full_history.append({"role": "user", "content": msg})
@@ -830,8 +818,8 @@ if st.session_state.phase == "in_session":
     if (step in ("ex1_ready",) or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
         render_video_widget(1)
 
-    # Show ex2 widget as soon as ex1 is complete OR ex2 has been introduced
-    if ex2_active or ex1_s == "complete":
+    # Show ex2 widget only once Movy has introduced it (introduce_exercise signal)
+    if step == "ex2_ready" or ex2_s in ("playing", "paused", "complete"):
         render_video_widget(2)
 
 # ── PT Summary card ───────────────────────────────────────────────────────────
