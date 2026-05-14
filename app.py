@@ -728,7 +728,14 @@ def render_video_widget(n: int):
         # After Exercise 2 is marked complete, proactively start Phase 4
         # with a silent trigger — Movy announces the check-in and asks Q1
         # without waiting for the user to type anything.
-        if n == 2 and st.session_state.phase == "post_checkin":
+        # Defensive: if the LLM forgot the session_complete signal, force the
+        # phase forward now so the trigger fires unconditionally.
+        if n == 2:
+            if st.session_state.phase != "post_checkin":
+                st.session_state.phase = "post_checkin"
+                st.session_state.in_session_step = "done"
+                if "session_end_time" not in st.session_state:
+                    st.session_state.session_end_time = time.time()
             typing_ph2 = st.empty()
             typing_ph2.markdown(
                 '<div class="chat-row movy"><div class="typing-indicator">'
