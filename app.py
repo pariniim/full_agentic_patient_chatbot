@@ -1188,7 +1188,7 @@ components.html(f"""
         }};
     }}
 
-    }
+
 
     function readNewMessages() {{
         var bubbles = doc.querySelectorAll('.bubble.movy');
