@@ -661,9 +661,13 @@ if st.session_state.show_splash:
         else:
             st.image("assets/images/movy_logo1.png", width=320)
         st.write("")
-        if st.button("Start Onboarding  →"):
-            st.session_state.show_splash = False
-            st.rerun()
+        # Centre the button with sub-columns; use_container_width keeps it
+        # flush inside its sub-column but narrower than the logo above
+        _, btn_col, _ = st.columns([1, 2, 1])
+        with btn_col:
+            if st.button("Start Onboarding  →", use_container_width=True):
+                st.session_state.show_splash = False
+                st.rerun()
 else:
     render_header()
     # ── Render chat history ───────────────────────────────────────────────────────
