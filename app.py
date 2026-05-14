@@ -108,7 +108,7 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
 
-/* Square exercise videos (st.video renders these) */
+/* Square exercise videos — native controls hidden; button is the only control */
 .stVideo, [data-testid="stVideo"] {
     width: 60% !important;
     margin: 0 auto !important;
@@ -121,6 +121,16 @@ section[data-testid="stSidebar"]{display:none;}
     object-fit: cover !important;
     border-radius: 16px !important;
     display: block !important;
+    pointer-events: none !important;       /* disable click-on-video */
+}
+/* Hide the browser's built-in video control bar */
+.stVideo video::-webkit-media-controls,
+[data-testid="stVideo"] video::-webkit-media-controls {
+    display: none !important;
+}
+.stVideo video::-webkit-media-controls-enclosure,
+[data-testid="stVideo"] video::-webkit-media-controls-enclosure {
+    display: none !important;
 }
 
 /* Chat Input Bar */
@@ -640,20 +650,86 @@ def render_header():
     </div>
     """, unsafe_allow_html=True)
 
-# ── Splash screen ──────────────────────────────────────────────────────────────────────
-if st.session_state.show_splash:
-    # Add vertical space to push content towards the centre
+# \u2500\u2500 Video widget \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+def render_video_widget(n: int):
+    """Render the exercise video player for exercise n (1 or 2).
+    States: idle \u2192 playing \u2194 paused \u2192 complete
+    The Streamlit button is the only play/pause control.
+    """
+    name = st.session_state.patient_data.get(f"exercise_{n}", f"Exercise {n}")
+    state = st.session_state.ex_state.get(n, "idle")
+    vid_path = _video_path(name)
+
+    def _show_video():
+        if vid_path.exists():
+            st.video(str(vid_path))
+        else:
+            st.warning(f"Video not found: {vid_path}")
+
+    def _mark_complete():
+        """Shared handler for marking an exercise done."""
+        st.session_state.ex_state[n] = "complete"
+        st.session_state.music_playing = False
+        msg = f"I have completed {name}."
+        st.session_state.messages.append({"role": "user", "content": msg})
+        st.session_state.full_history.append({"role": "user", "content": msg})
+        typing_ph = st.empty()
+        typing_ph.markdown(
+            '<div class="chat-row movy"><div class="typing-indicator">'
+            '<span></span><span></span><span></span></div></div>',
+            unsafe_allow_html=True,
+        )
+        reply = call_llm(st.session_state.full_history)
+        typing_ph.empty()
+        clean, sig = parse_signal(reply)
+        st.session_state.full_history.append({"role": "assistant", "content": clean})
+        st.session_state.messages.append({"role": "assistant", "content": clean})
+        process_signal(sig)
+        st.rerun()
+
+    if state == "idle":
+        _show_video()
+        if st.button(f"\u25b6  Start Exercise {n}", key=f"start_{n}"):
+            st.session_state.ex_state[n] = "playing"
+            st.session_state.music_playing = True
+            st.rerun()
+
+    elif state == "playing":
+        _show_video()
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button(f"\u23f8  Pause", key=f"pause_{n}", use_container_width=True):
+                st.session_state.ex_state[n] = "paused"
+                st.rerun()
+        with c2:
+            if st.button(f"\u2713 Mark Complete", key=f"done_{n}", use_container_width=True):
+                _mark_complete()
+
+    elif state == "paused":
+        _show_video()
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button(f"\u25b6  Resume", key=f"resume_{n}", use_container_width=True):
+                st.session_state.ex_state[n] = "playing"
+                st.rerun()
+        with c2:
+            if st.button(f"\u2713 Mark Complete", key=f"done_{n}", use_container_width=True):
+                _mark_complete()
+
+    elif state == "complete":
+        pass  # Completion shown as a user chat bubble; no widget needed here
+
+
+# \u2500\u2500 Splash screen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif st.session_state.show_splash:
     st.write("")
     st.write("")
     st.write("")
     st.write("")
     st.write("")
-    # Centre with columns: narrow | content | narrow
     _, col, _ = st.columns([1, 3, 1])
     with col:
         _svg_b64 = load_splash_svg()
         if _svg_b64:
-            # Inline SVG via data URI — stays vector, renders crisp at any DPI
             st.markdown(
                 f'<img src="data:image/svg+xml;base64,{_svg_b64}" '
                 f'style="width:min(33vw,480px);max-width:100%;display:block;margin:0 auto 1rem auto;" '
@@ -663,16 +739,14 @@ if st.session_state.show_splash:
         else:
             st.image("assets/images/movy_logo1.png", width=320)
         st.write("")
-        # Centre the button with sub-columns; use_container_width keeps it
-        # flush inside its sub-column but narrower than the logo above
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
-            if st.button("Start Onboarding  →", use_container_width=True):
+            if st.button("Start Onboarding  \u2192", use_container_width=True):
                 st.session_state.show_splash = False
                 st.rerun()
 else:
     render_header()
-    # ── Render chat history ───────────────────────────────────────────────────────
+    # \u2500\u2500 Render chat history \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     _logo_b64 = load_logo_b64()
     _avatar_html = (
         f'<img src="data:image/png;base64,{_logo_b64}" class="movy-avatar" alt="Movy">'
@@ -689,75 +763,6 @@ else:
                 f'<div class="chat-row movy">{_avatar_html}<div class="bubble movy">{msg["content"]}</div></div>',
                 unsafe_allow_html=True,
             )
-
-
-# ── Ambient music ─────────────────────────────────────────────────────────────
-if st.session_state.music_playing:
-    audio_b64 = load_audio_b64()
-    if audio_b64:
-        st.markdown(f'<audio autoplay loop style="display:none"><source src="data:audio/mpeg;base64,{audio_b64}" type="audio/mpeg"></audio>',
-                    unsafe_allow_html=True)
-
-# ── Video widget ─────────────────────────────────────────────────────────────
-def render_video_widget(n: int):
-    """Render the exercise video player for exercise n (1 or 2)."""
-    name = st.session_state.patient_data.get(f"exercise_{n}", f"Exercise {n}")
-    state = st.session_state.ex_state.get(n, "idle")
-    vid_path = _video_path(name)
-
-    def _show_video():
-        if vid_path.exists():
-            st.video(str(vid_path))
-        else:
-            st.warning(f"Video not found: {vid_path}")
-
-    if state == "idle":
-        st.markdown(
-            f'<div class="vid-label" style="font-size:0.9rem;font-weight:600;'
-            f'color:#C4603A;margin-bottom:0.4rem;">{name}</div>',
-            unsafe_allow_html=True,
-        )
-        _show_video()
-        if st.button(f"▶ Start Exercise {n}", key=f"start_{n}"):
-            st.session_state.ex_state[n] = "playing"
-            st.session_state.music_playing = True
-            st.rerun()
-
-    elif state == "playing":
-        st.markdown(
-            f'<div class="vid-label" style="font-size:0.9rem;font-weight:600;'
-            f'color:#C4603A;margin-bottom:0.4rem;">{name} — in progress 🏃</div>',
-            unsafe_allow_html=True,
-        )
-        _show_video()
-        if st.button(f"✓ Mark Exercise {n} Complete", key=f"done_{n}"):
-            st.session_state.ex_state[n] = "complete"
-            st.session_state.music_playing = False
-            msg = f"I have completed {name}."
-            st.session_state.messages.append({"role": "user", "content": msg})
-            st.session_state.full_history.append({"role": "user", "content": msg})
-            typing_ph = st.empty()
-            typing_ph.markdown(
-                '<div class="chat-row movy"><div class="typing-indicator">'
-                '<span></span><span></span><span></span></div></div>',
-                unsafe_allow_html=True,
-            )
-            reply = call_llm(st.session_state.full_history)
-            typing_ph.empty()
-            clean, sig = parse_signal(reply)
-            st.session_state.full_history.append({"role": "assistant", "content": clean})
-            st.session_state.messages.append({"role": "assistant", "content": clean})
-            process_signal(sig)
-            st.rerun()
-
-    elif state == "complete":
-        st.markdown(
-            f'<div class="video-wrap"><div class="video-screen complete">'
-            f'<div class="vid-badge">✓ Completed</div>'
-            f'<div class="vid-label" style="color:#6b7280">{name}</div>'
-            f'</div></div>',
-            unsafe_allow_html=True,
-        )
 
 
 # ── Start Session button (shown after onboarding, before session begins) ──────
@@ -859,13 +864,17 @@ if st.session_state.phase == "pt_summary":
           </div>
         </div>""", unsafe_allow_html=True)
 
-# ── JS helpers: placeholder colour + scroll-to-latest-bubble ────────────────
-_is_splash = "true" if st.session_state.show_splash else "false"
+# ── JS helpers: placeholder colour + scroll + video play/pause control ─────────
+_is_splash  = "true"  if st.session_state.show_splash else "false"
+_ex1_state  = st.session_state.ex_state.get(1, "idle")
+_ex2_state  = st.session_state.ex_state.get(2, "idle")
 components.html(f"""
 <script>
 (function(){{
-    var IS_SPLASH = {_is_splash};
-    var doc = window.parent.document;
+    var IS_SPLASH  = {_is_splash};
+    var EX_STATES  = ['{_ex1_state}', '{_ex2_state}'];
+    var doc        = window.parent.document;
+    var storage    = window.parent.sessionStorage;
 
     // 1. Inject placeholder colour for the chat input
     if (!doc.getElementById('movy-placeholder-style')) {{
@@ -883,6 +892,40 @@ components.html(f"""
     if (!IS_SPLASH) {{
         window.parent.scrollTo({{ top: doc.body.scrollHeight, behavior: 'smooth' }});
     }}
+
+    // 3. Play/pause each exercise video based on ex_state
+    //    Position is saved in sessionStorage so it survives Streamlit re-renders.
+    function controlVideo(vid, state, key) {{
+        if (state === 'playing') {{
+            var saved = parseFloat(storage.getItem(key) || '0');
+            function doPlay() {{
+                if (saved > 0 && isFinite(saved)) vid.currentTime = saved;
+                vid.play().catch(function(){{}});
+                vid.ontimeupdate = function() {{ storage.setItem(key, vid.currentTime); }};
+            }}
+            if (vid.readyState >= 1) {{ doPlay(); }}
+            else {{ vid.addEventListener('loadedmetadata', doPlay, {{once: true}}); }}
+        }} else if (state === 'paused') {{
+            storage.setItem(key, vid.currentTime || 0);
+            vid.pause();
+        }} else {{
+            vid.pause();
+            if (state === 'idle') {{ vid.currentTime = 0; storage.removeItem(key); }}
+        }}
+    }}
+
+    function applyVideoStates() {{
+        var vids = doc.querySelectorAll('[data-testid="stVideo"] video');
+        vids.forEach(function(v, i) {{
+            if (i < EX_STATES.length) controlVideo(v, EX_STATES[i], 'movy_vid_' + i);
+        }});
+    }}
+
+    applyVideoStates();
+    // Re-apply whenever Streamlit swaps DOM nodes
+    new MutationObserver(applyVideoStates).observe(
+        doc.body, {{childList: true, subtree: true}}
+    );
 }})();
 </script>
 """, height=0)
