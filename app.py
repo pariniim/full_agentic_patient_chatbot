@@ -788,11 +788,20 @@ if st.session_state.phase == "programme_selection":
                 '<span></span><span></span><span></span></div></div>',
                 unsafe_allow_html=True,
             )
-            reply2 = call_llm(st.session_state.full_history)
+            # Inject a silent trigger so the LLM produces the intro text + signal.
+            # The trigger goes into full_history for context but is NOT shown in the UI.
+            _silent_trigger = "Please introduce the first exercise now."
+            _h2 = [*st.session_state.full_history,
+                   {"role": "user", "content": _silent_trigger}]
+            reply2 = call_llm(_h2)
             typing_ph2.empty()
             clean2, sig2 = parse_signal(reply2)
+            # Add the silent trigger to history so the conversation is coherent
+            st.session_state.full_history.append({"role": "user", "content": _silent_trigger})
             st.session_state.full_history.append({"role": "assistant", "content": clean2})
-            st.session_state.messages.append({"role": "assistant", "content": clean2})
+            # Only show Movy's reply if it has visible text (avoid empty bubbles)
+            if clean2.strip():
+                st.session_state.messages.append({"role": "assistant", "content": clean2})
             process_signal(sig2)
 
         st.rerun()
