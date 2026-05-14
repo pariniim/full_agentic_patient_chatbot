@@ -266,13 +266,7 @@ section[data-testid="stSidebar"]{display:none;}
     gap: 2rem;
     padding: 4rem 1rem;
 }
-/* Crisp high-res logo rendering */
-[data-testid="stImage"] img {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    image-rendering: high-quality;
-    -ms-interpolation-mode: bicubic;
-}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -513,12 +507,25 @@ def load_audio_b64() -> str | None:
         return base64.b64encode(p.read_bytes()).decode()
     return None
 
-# ── Logo loader ───────────────────────────────────────────────────────────────
+# ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_logo_b64() -> str | None:
     p = Path("assets/images/LogoCircle1.png")
     if p.exists():
         return base64.b64encode(p.read_bytes()).decode()
+    return None
+
+# ── Splash logo loader (SVG — stays vector, no rasterisation) ────────────────
+@st.cache_data(show_spinner=False)
+def load_splash_svg() -> str | None:
+    """Return a base64-encoded data URI for the SVG splash logo."""
+    p = Path("assets/images/movy_logo1.svg")
+    if p.exists():
+        return base64.b64encode(p.read_bytes()).decode()
+    # Fallback to PNG if SVG not found
+    p2 = Path("assets/images/movy_logo1.png")
+    if p2.exists():
+        return None  # caller will use st.image for PNG
     return None
 
 # ── Video loader ──────────────────────────────────────────────────────────────
@@ -642,7 +649,17 @@ if st.session_state.show_splash:
     # Centre with columns: narrow | content | narrow
     _, col, _ = st.columns([1, 3, 1])
     with col:
-        st.image("assets/images/movy_logo1.png", width=320)
+        _svg_b64 = load_splash_svg()
+        if _svg_b64:
+            # Inline SVG via data URI — stays vector, renders crisp at any DPI
+            st.markdown(
+                f'<img src="data:image/svg+xml;base64,{_svg_b64}" '
+                f'style="width:320px;max-width:100%;display:block;margin:0 auto 1rem auto;" '
+                f'alt="Movy logo" />',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.image("assets/images/movy_logo1.png", width=320)
         st.write("")
         if st.button("Start Onboarding  →", use_container_width=True):
             st.session_state.show_splash = False
