@@ -239,6 +239,7 @@ section[data-testid="stSidebar"]{display:none;}
     background: transparent;
     color: #B4BACF;
     border: 1px solid #E0E2E7;
+    transform: rotate(-90deg); /* Rotate 90deg left */
 }
 
 .voice-btn:hover {
@@ -1053,12 +1054,20 @@ components.html(f"""
     var ttsEnabled = storage.getItem('movy_tts_enabled') === 'true';
 
     function initVoice() {{
-        if (!recognition) return;
+        if (!recognition) {{
+            console.warn("Movy: SpeechRecognition API not supported in this browser.");
+            return;
+        }}
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
 
+        recognition.onstart = function() {{
+            console.log("Movy: Speech Recognition started...");
+        }};
+
         recognition.onresult = function(event) {{
+            console.log("Movy: Speech Recognition result received.");
             var text = event.results[0][0].transcript;
             var input = doc.querySelector('.stChatInput textarea');
             var btn = doc.querySelector('.stChatInput button');
@@ -1070,7 +1079,19 @@ components.html(f"""
             }}
         }};
 
+        recognition.onerror = function(event) {{
+            console.error("Movy: Speech Recognition Error: " + event.error);
+            var mic = doc.getElementById('movy-mic-btn');
+            if (mic) mic.classList.remove('active');
+            var indicator = doc.getElementById('movy-listening-indicator');
+            if (indicator) {{
+                indicator.innerText = "Error: " + event.error;
+                setTimeout(function() {{ indicator.style.display = 'none'; indicator.innerText = "Listening..."; }}, 3000);
+            }}
+        }};
+
         recognition.onend = function() {{
+            console.log("Movy: Speech Recognition ended.");
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
             var indicator = doc.getElementById('movy-listening-indicator');
@@ -1082,10 +1103,37 @@ components.html(f"""
         if (!ttsEnabled || !synth) return;
         synth.cancel(); 
         var ut = new SpeechSynthesisUtterance(text);
+        
+        // Wait for voices to be loaded (some browsers load them asynchronously)
         var voices = synth.getVoices();
-        var preferred = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
-        if (preferred) ut.voice = preferred;
-        ut.pitch = 1.0;
+        
+        // Prioritized list of high-quality female voices
+        var preferredNames = [
+            'Google UK English Female',
+            'Google US English Female',
+            'Microsoft Zira',
+            'Samantha',
+            'Victoria',
+            'Fiona'
+        ];
+        
+        var voice = null;
+        // 1. Try preferred names
+        for (var i = 0; i < preferredNames.length; i++) {{
+            voice = voices.find(v => v.name.includes(preferredNames[i]));
+            if (voice) break;
+        }}
+        
+        // 2. Fallback to any voice with 'Female' in the name
+        if (!voice) {{
+            voice = voices.find(v => v.name.toLowerCase().includes('female'));
+        }}
+        
+        // 3. Fallback to first available
+        if (!voice) voice = voices[0];
+
+        if (voice) ut.voice = voice;
+        ut.pitch = 1.05; // Slightly higher pitch for a warmer tone
         ut.rate = 0.95;
         synth.speak(ut);
     }}
@@ -1109,10 +1157,29 @@ components.html(f"""
         container.insertBefore(ctrls, container.firstChild);
 
         doc.getElementById('movy-mic-btn').onclick = function() {{
-            if (!recognition) return;
-            this.classList.add('active');
-            doc.getElementById('movy-listening-indicator').style.display = 'block';
-            recognition.start();
+            if (!recognition) {{
+                alert("Speech recognition is not supported in this browser.");
+                return;
+            }}
+            
+            var isActive = this.classList.contains('active');
+            
+            if (isActive) {{
+                recognition.stop();
+                console.log("Movy: Manual stop requested.");
+            }} else {{
+                try {{
+                    recognition.start();
+                    this.classList.add('active');
+                    var indicator = doc.getElementById('movy-listening-indicator');
+                    if (indicator) {{
+                        indicator.innerText = "Listening...";
+                        indicator.style.display = 'block';
+                    }}
+                }} catch (e) {{
+                    console.warn("Movy: Recognition already started or error: ", e);
+                }}
+            }}
         }};
 
         doc.getElementById('movy-speaker-btn').onclick = function() {{
