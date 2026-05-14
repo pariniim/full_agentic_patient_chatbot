@@ -107,6 +107,7 @@ section[data-testid="stSidebar"]{display:none;}
 .typing-indicator span:nth-child(2){animation-delay:0.2s;}
 .typing-indicator span:nth-child(3){animation-delay:0.4s;}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:0.4;}40%{transform:translateY(-6px);opacity:1;}}
+@keyframes green-flash{0%{background:#22c55e;transform:scale(1);}50%{background:#16a34a;transform:scale(1.04);}100%{background:#22c55e;transform:scale(1);}}
 
 /* Square exercise videos — native controls hidden; button is the only control */
 .stVideo, [data-testid="stVideo"] {
@@ -381,17 +382,28 @@ Address the user by their preferred_name and ask the mid-session check-in questi
 For example: "Well done, [preferred_name]! How are you feeling?"
 (Always use their actual preferred_name, never the placeholder.)
 
-Classify response as: energetic / tired / pain / unsure / positive / no_response.
+⚠ CRITICAL: Do NOT emit any signal here. Wait for the user to reply.
+
+Step B2: When the user replies to the check-in question:
+Classify their response as one of: energetic / tired / pain / unsure / positive / no_response.
 Store: mid_session_energy_level, mid_session_pain, mid_session_confusion.
 
-Pain threshold rule:
-If pain ≥ 8/10 → treat as severe:
-- advise immediate stop
-- recommend rest
-- reassure physiotherapist will review
-- do NOT continue unless user insists
+Adapt your reply based on the classification:
+- energetic / positive → acknowledge their energy warmly, praise their effort.
+- tired → offer empathy, remind them the next exercise is lighter or encourage a short pause.
+- unsure → reassure them that it is normal and encourage gently.
+- no_response → gently acknowledge and proceed.
+- pain → ask them to rate it 1–10. Then:
+  - If pain < 8: acknowledge, remind them to go at their own pace.
+  - If pain ≥ 8 (severe):
+    - Advise immediate stop.
+    - Recommend rest.
+    - Reassure that the physiotherapist will review.
+    - Do NOT continue unless the user explicitly insists.
+    - Do NOT emit the introduce_exercise signal.
 
-Step C: Introduce Exercise 2 warmly.
+Step C: After delivering your adapted response (and ONLY if pain < 8 or no pain reported),
+introduce Exercise 2 warmly.
 Say:
 "Great. Let's move on to your second exercise."
 
@@ -642,8 +654,8 @@ def render_header():
 # \u2500\u2500 Video widget \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 def render_video_widget(n: int):
     """Render the exercise video player for exercise n (1 or 2).
-    States: idle \u2192 playing \u2194 paused \u2192 complete
-    The Streamlit button is the only play/pause control.
+    States: idle (auto-playing) -> completing (green flash) -> complete.
+    Only a single Mark Complete button is shown.
     """
     name = st.session_state.patient_data.get(f"exercise_{n}", f"Exercise {n}")
     state = st.session_state.ex_state.get(n, "idle")
@@ -656,7 +668,7 @@ def render_video_widget(n: int):
             st.warning(f"Video not found: {vid_path}")
 
     def _mark_complete():
-        """Shared handler for marking an exercise done."""
+        """Call LLM and advance state after the green flash."""
         st.session_state.ex_state[n] = "complete"
         msg = f"I have completed {name}."
         st.session_state.messages.append({"role": "user", "content": msg})
@@ -673,36 +685,33 @@ def render_video_widget(n: int):
         st.session_state.full_history.append({"role": "assistant", "content": clean})
         st.session_state.messages.append({"role": "assistant", "content": clean})
         process_signal(sig)
+        # After Exercise 1 is marked complete the LLM asks the mid-session
+        # check-in question and must wait for the user to reply before
+        # introducing Exercise 2.  Gate the flow here so the Ex2 widget
+        # cannot appear until the user has actually answered.
+        if n == 1 and st.session_state.in_session_step != "ex2_ready":
+            st.session_state.in_session_step = "ex1_checkin_pending"
         st.rerun()
 
     if state == "idle":
+        # Video auto-plays via JS. Show only the Mark Complete button.
         _show_video()
-        if st.button(f"\u25b6  Start Exercise {n}", key=f"start_{n}"):
-            st.session_state.ex_state[n] = "playing"
-            st.session_state.music_playing = True
+        if st.button("\u2713 Mark Complete", key=f"done_{n}"):
+            st.session_state.ex_state[n] = "completing"
             st.rerun()
 
-    elif state == "playing":
+    elif state == "completing":
+        # One render cycle: show a green flash pill, then immediately mark done.
         _show_video()
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button(f"\u23f8  Pause", key=f"pause_{n}", use_container_width=True):
-                st.session_state.ex_state[n] = "paused"
-                st.rerun()
-        with c2:
-            if st.button(f"\u2713 Mark Complete", key=f"done_{n}", use_container_width=True):
-                _mark_complete()
-
-    elif state == "paused":
-        _show_video()
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button(f"\u25b6  Resume", key=f"resume_{n}", use_container_width=True):
-                st.session_state.ex_state[n] = "playing"
-                st.rerun()
-        with c2:
-            if st.button(f"\u2713 Mark Complete", key=f"done_{n}", use_container_width=True):
-                _mark_complete()
+        st.markdown(
+            '<div style="display:flex;justify-content:center;margin:0.5rem 0;">'
+            '<div style="background:#22c55e;color:#fff;padding:0.5rem 1.6rem;'
+            'border-radius:8px;font-weight:600;font-size:0.95rem;'
+            'animation:green-flash 0.45s ease-out;">'
+            '\u2713 Marked Complete!</div></div>',
+            unsafe_allow_html=True,
+        )
+        _mark_complete()  # sets state to "complete" and reruns
 
     elif state == "complete":
         pass  # Completion shown as a user chat bubble; no widget needed here
@@ -815,10 +824,12 @@ if st.session_state.phase == "in_session":
 
     # Show ex1 widget while it hasn't been replaced by ex2 starting
     ex2_active = ex2_s in ("playing", "complete") or step == "ex2_ready"
-    if (step in ("ex1_ready",) or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
+    if (step in ("ex1_ready", "ex1_checkin_pending") or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
         render_video_widget(1)
 
-    # Show ex2 widget only once Movy has introduced it (introduce_exercise signal)
+    # Show ex2 widget ONLY once Movy has formally introduced it after the
+    # mid-session check-in (introduce_exercise signal sets step to ex2_ready).
+    # While in ex1_checkin_pending the check-in reply is still outstanding.
     if step == "ex2_ready" or ex2_s in ("playing", "paused", "complete"):
         render_video_widget(2)
 
@@ -882,10 +893,12 @@ components.html(f"""
         window.parent.scrollTo({{ top: doc.body.scrollHeight, behavior: 'smooth' }});
     }}
 
-    // 3. Play/pause each exercise video based on ex_state
+    // 3. Auto-play each exercise video when it is active (idle = playing automatically).
     //    Position is saved in sessionStorage so it survives Streamlit re-renders.
     function controlVideo(vid, state, key) {{
-        if (state === 'playing') {{
+        // idle and completing both mean "should be playing"
+        var shouldPlay = (state === 'idle' || state === 'completing');
+        if (shouldPlay) {{
             var saved = parseFloat(storage.getItem(key) || '0');
             function doPlay() {{
                 if (saved > 0 && isFinite(saved)) vid.currentTime = saved;
@@ -894,12 +907,10 @@ components.html(f"""
             }}
             if (vid.readyState >= 1) {{ doPlay(); }}
             else {{ vid.addEventListener('loadedmetadata', doPlay, {{once: true}}); }}
-        }} else if (state === 'paused') {{
-            storage.setItem(key, vid.currentTime || 0);
-            vid.pause();
         }} else {{
+            // complete or any other terminal state — pause and clear saved position
             vid.pause();
-            if (state === 'idle') {{ vid.currentTime = 0; storage.removeItem(key); }}
+            storage.removeItem(key);
         }}
     }}
 
