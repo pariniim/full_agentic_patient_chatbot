@@ -1022,9 +1022,19 @@ if user_input and user_input.strip():
     # advance the state manually so the flow never gets stuck.
     _step = st.session_state.get("in_session_step")
     if _step == "ex1_checkin_pending":
-        # LLM gave its check-in reply without emitting checkin_resolved or
-        # checkin_pain_followup.  Default to showing the Continue button.
-        st.session_state.in_session_step = "ex1_checkin_answered"
+        # Detect whether the LLM is asking for a pain rating (forgot the
+        # checkin_pain_followup signal) rather than giving a closing reply.
+        _pain_rating_keywords = [
+            "rate", "scale", "out of 10", "1 to 10", "1-10", "/10",
+            "how bad", "how much pain", "pain level", "score",
+        ]
+        _asking_for_rating = any(kw in clean.lower() for kw in _pain_rating_keywords)
+        if _asking_for_rating:
+            # Still waiting for the pain number — keep the button hidden.
+            st.session_state.in_session_step = "ex1_pain_rating_pending"
+        else:
+            # LLM gave a full closing response — safe to show the button.
+            st.session_state.in_session_step = "ex1_checkin_answered"
     elif _step == "ex1_pain_rating_pending":
         # LLM responded to the pain rating without emitting checkin_resolved.
         # Since it acknowledged and moved on, assume pain < 8 and show button.
