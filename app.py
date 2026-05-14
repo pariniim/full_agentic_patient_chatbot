@@ -699,24 +699,31 @@ def render_header():
     </div>
     """, unsafe_allow_html=True)
 
-# Inject / remove the splash-mode body class via JS
+# ── Conditionally strip the phone frame on splash (pure CSS — no JS needed) ──
 if st.session_state.show_splash:
     st.markdown("""
-    <script>
-    (function(){
-        var doc = window.parent ? window.parent.document : document;
-        doc.body.classList.add('splash-mode');
-    })();
-    </script>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-    <script>
-    (function(){
-        var doc = window.parent ? window.parent.document : document;
-        doc.body.classList.remove('splash-mode');
-    })();
-    </script>
+    <style>
+    /* Hide Dynamic Island & Home Indicator pseudo-elements */
+    .stApp::before, .stApp::after { display: none !important; }
+    /* Reset phone frame so splash is full-page */
+    .block-container {
+        background: transparent !important;
+        max-width: 100vw !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
 # The header and other elements will render inside the styled block-container
@@ -864,36 +871,44 @@ if st.session_state.phase == "pt_summary":
         </div>""", unsafe_allow_html=True)
 
 # ── Snap input bar to phone bottom + placeholder colour ──────────────────────
-components.html("""
+_is_splash = str(st.session_state.show_splash).lower()
+components.html(f"""
 <script>
-(function snapInput() {
+(function snapInput() {{
+    var IS_SPLASH = {_is_splash};
+
     // Inject placeholder colour into the parent document (bypasses Streamlit CSS scope)
-    (function injectStyle() {
+    (function injectStyle() {{
         var doc = window.parent.document;
         if (doc.getElementById('movy-placeholder-style')) return;
         var s = doc.createElement('style');
         s.id = 'movy-placeholder-style';
         s.textContent = [
-            '.stChatInput textarea::placeholder { color: #B4BACF !important; opacity: 1 !important; }',
-            '.stChatInput textarea::-webkit-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
-            '.stChatInput textarea:-ms-input-placeholder { color: #B4BACF !important; opacity: 1 !important; }',
+            '.stChatInput textarea::placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
+            '.stChatInput textarea::-webkit-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
+            '.stChatInput textarea:-ms-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
         ].join('');
         doc.head.appendChild(s);
-    })();
+    }})();
 
-    function position() {
+    function position() {{
         var doc = window.parent.document;
         var phone = doc.querySelector('.block-container');
         var bar   = doc.querySelector('[data-testid="stChatInput"]')
                    || doc.querySelector('.stChatInput');
+
+        // ── Hide/remove overlay during splash ──────────────────────────────
+        var overlay = doc.getElementById('movy-phone-overlay');
+        if (IS_SPLASH) {{
+            if (overlay) overlay.style.display = 'none';
+            return;
+        }}
+
         if (!phone) return;
         var r = phone.getBoundingClientRect();
 
-        // ── Phone border overlay – transparent div that redraws the titanium
-        //    border at z-index 10000, above the input bar (z-index 5000),
-        //    so the border visually sits OVER the input area.
-        var overlay = doc.getElementById('movy-phone-overlay');
-        if (!overlay) {
+        // ── Phone border overlay – redraws the titanium border above input bar
+        if (!overlay) {{
             overlay = doc.createElement('div');
             overlay.id = 'movy-phone-overlay';
             overlay.style.position    = 'fixed';
@@ -904,7 +919,8 @@ components.html("""
             overlay.style.background  = 'transparent';
             overlay.style.boxSizing   = 'border-box';
             doc.body.appendChild(overlay);
-        }
+        }}
+        overlay.style.display = 'block';
         overlay.style.top    = r.top  + 'px';
         overlay.style.left   = r.left + 'px';
         overlay.style.width  = r.width  + 'px';
@@ -912,44 +928,35 @@ components.html("""
 
         // ── Fix header to the phone's inner top edge
         var header = doc.querySelector('.sticky-header');
-        if (header) {
-            header.style.position    = 'fixed';
-            header.style.top         = (r.top + 12) + 'px';  /* inside top border */
-            header.style.left        = (r.left + 12) + 'px'; /* inside left border */
-            header.style.width       = (r.width - 24) + 'px'; /* content width */
-            header.style.zIndex      = '8000';
-        }
-
-        // ── Fix header to the phone's inner top edge
-        var header = doc.querySelector('.sticky-header');
-        if (header) {
-            header.style.position    = 'fixed';
-            header.style.top         = (r.top + 12) + 'px';
-            header.style.left        = (r.left + 12) + 'px';
-            header.style.width       = (r.width - 24) + 'px';
-            header.style.zIndex      = '8000';
-        }
+        if (header) {{
+            header.style.position = 'fixed';
+            header.style.top      = (r.top  + 12) + 'px';
+            header.style.left     = (r.left + 12) + 'px';
+            header.style.width    = (r.width - 24) + 'px';
+            header.style.zIndex   = '8000';
+        }}
 
         if (!bar) return;
         // ── Position input bar at the phone's bottom (inside the frame)
-        bar.style.left        = r.left + 'px';
-        bar.style.width       = r.width + 'px';
-        bar.style.bottom      = (window.parent.innerHeight - r.bottom) + 'px';
-        bar.style.top         = 'auto';
+        bar.style.left         = r.left + 'px';
+        bar.style.width        = r.width + 'px';
+        bar.style.bottom       = (window.parent.innerHeight - r.bottom) + 'px';
+        bar.style.top          = 'auto';
         bar.style.borderRadius = '0 0 48px 48px';
-        bar.style.overflow    = 'hidden';
-    }
+        bar.style.overflow     = 'hidden';
+    }}
     position();
     // Scroll the phone to the latest chat bubble on every render
-    (function scrollToBottom() {
+    (function scrollToBottom() {{
+        if (IS_SPLASH) return;
         var phone = window.parent.document.querySelector('.block-container');
-        if (phone) { phone.scrollTop = phone.scrollHeight; }
-    })();
+        if (phone) {{ phone.scrollTop = phone.scrollHeight; }}
+    }})();
     window.parent.addEventListener('resize', position);
     new MutationObserver(position).observe(
-        window.parent.document.body, {childList:true, subtree:true}
+        window.parent.document.body, {{childList:true, subtree:true}}
     );
-})();
+}})();
 </script>
 """, height=0)
 
