@@ -803,6 +803,10 @@ if st.session_state.phase == "programme_selection":
             if clean2.strip():
                 st.session_state.messages.append({"role": "assistant", "content": clean2})
             process_signal(sig2)
+            # Defensive: if the LLM didn't emit the introduce_exercise signal,
+            # force the step forward so the video widget always appears.
+            if st.session_state.phase == "in_session" and st.session_state.in_session_step == "intro":
+                st.session_state.in_session_step = "ex1_ready"
 
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
