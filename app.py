@@ -469,16 +469,92 @@ div.stButton {
 .param-item {
     font-size: 0.88rem;
     color: #5A6480;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
     line-height: 1.4;
 }
-.param-title {
+
+/* Redesigned Summary Pills */
+.pill-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+}
+.pill-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+.pill-label {
+    font-size: 0.72rem;
+    color: #8E98B0;
+    margin-bottom: 0.2rem;
+    margin-left: 0.4rem;
+}
+.param-pill {
+    width: 100%;
+    border: 1.2px solid #6C7D9D;
+    border-radius: 18px;
+    padding: 0.35rem 0.6rem;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #1a1d27;
+    background: white;
+}
+.exercise-title {
+    font-size: 1.1rem;
     font-weight: 600;
     color: #1a1d27;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
 }
-.param-detail {
+
+.circle-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1.2px solid #6C7D9D;
+    border-radius: 50%;
+    margin: 0 0.5rem;
+    font-weight: 600;
+    color: #1a1d27;
+}
+
+.date-pill {
+    display: flex;
+    align-items: center;
+    border: 1.2px solid #6C7D9D;
+    border-radius: 18px;
+    padding: 0.6rem 1rem;
+    width: 100%;
+    gap: 0.75rem;
+    font-weight: 500;
+    color: #1a1d27;
+}
+
+.clinical-label {
+    font-size: 0.85rem;
+    color: #8E98B0;
     margin-bottom: 0.5rem;
+    margin-top: 1rem;
+}
+
+.summary-row {
+    display: flex;
+    gap: 2rem;
+    align-items: stretch; /* Force same height */
+    width: 100%;
+}
+.summary-param-card {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 2rem;
+    flex: 1;
+    border: 1px solid #E0E2E7;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Video Overlay Styles */
@@ -1098,51 +1174,67 @@ def render_appointment_summary():
     except:
         st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration.</h2>', unsafe_allow_html=True)
     
-    # Side-by-side cards
-    col1, col2 = st.columns(2)
+    # Using a single row to force same height via stretch
+    st.markdown('<div class="summary-row">', unsafe_allow_html=True)
     
-    with col1:
-        st.markdown(f"""
-            <div class="summary-param-card">
-                <h3>Program Parameters</h3>
-                <div class="param-item">
-                    <div class="param-title">Exercise 1</div>
-                    <div class="param-detail">Sets: 3 | Reps: 5<br>Hold: 5 sec | Side: Both</div>
-                </div>
-                <div class="param-item">
-                    <div class="param-title">Exercise 2</div>
-                    <div class="param-detail">Sets: 3 | Reps: 5<br>Hold: 5 sec | Side: Both</div>
-                </div>
+    # CARD 1: Program Parameters
+    prog_html = """
+    <div class="summary-param-card">
+        <h2 style="font-size:1.5rem; color:#1a1d27; margin-bottom:1.5rem; margin-top:0;">Program Parameters</h2>
+    """
+    for i in range(1, 4):
+        prog_html += f"""
+        <div class="param-item">
+            <div class="exercise-title">[Exercise {i}]</div>
+            <div class="pill-row">
+                <div class="pill-container"><div class="pill-label">Sets</div><div class="param-pill">3</div></div>
+                <div class="pill-container"><div class="pill-label">Reps</div><div class="param-pill">5</div></div>
+                <div class="pill-container"><div class="pill-label">Hold</div><div class="param-pill">5 sec</div></div>
+                <div class="pill-container"><div class="pill-label">Side</div><div class="param-pill">Both ▾</div></div>
             </div>
-        """, unsafe_allow_html=True)
-        
-    with col2:
-        start_date = (date.today() + timedelta(days=1)).strftime("%d %B %Y")
-        next_app = st.session_state.patient_data.get("next_appointment", "[date]")
-        
-        st.markdown(f"""
-            <div class="summary-param-card">
-                <h3>Clinical Parameters</h3>
-                <div class="param-item">
-                    <div class="param-title">Pain Threshold</div>
-                    <div class="param-detail">Alert me if patient reports pain 8 / 10</div>
-                </div>
-                <div class="param-item">
-                    <div class="param-title">Program Details</div>
-                    <div class="param-detail">Start: {start_date}<br>Next App: {next_app}</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-    st.markdown('</div>', unsafe_allow_html=True)
+        </div>
+        """
+    prog_html += "</div>"
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Start Session  →", use_container_width=True):
-        st.session_state.phase = "in_session"
-        st.session_state.in_session_step = "ex1_ready"
-        st.session_state.show_video_overlay = True
-        st.session_state.current_video = "Ex01_square.mp4"
-        st.rerun()
+    # CARD 2: Clinical Parameters
+    start_date = (date.today() + timedelta(days=1)).strftime("%d %B %Y")
+    next_app = st.session_state.patient_data.get("next_appointment", "[date]")
+    
+    clin_html = f"""
+    <div class="summary-param-card">
+        <h2 style="font-size:1.5rem; color:#1a1d27; margin-bottom:1.5rem; margin-top:0;">Clinical Parameters</h2>
+        
+        <div class="clinical-label" style="margin-top:0;">Pain Threshold</div>
+        <div style="display:flex; align-items:center; font-size:1rem; color:#1a1d27; margin-bottom:1.5rem;">
+            Alert me if patient reports pain <div class="circle-pill">8</div> <span style="color:#8E98B0;">/10</span>
+        </div>
+        
+        <div class="clinical-label">Program Start</div>
+        <div class="date-pill">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            {start_date}
+        </div>
+        
+        <div class="clinical-label" style="margin-top:1.5rem;">Next Appointment</div>
+        <div class="date-pill">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            {next_app}
+        </div>
+    </div>
+    """
+    
+    st.markdown(prog_html + clin_html + '</div>', unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    # Center the button under the two cards
+    _, b_col, _ = st.columns([1, 2, 1])
+    with b_col:
+        if st.button("Start Session  →", use_container_width=True):
+            st.session_state.phase = "in_session"
+            st.session_state.in_session_step = "ex1_ready"
+            st.session_state.show_video_overlay = True
+            st.session_state.current_video = "Ex01_square.mp4"
+            st.rerun()
 
 def render_video_overlay(video_name):
     video_path = Path("assets/video") / video_name
