@@ -564,81 +564,27 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Markers are hidden from view */
-.btn-marker { display: none !important; }
-
-/* 1. Close Button (X) */
-div[data-testid="element-container"]:has(.marker-close) + div[data-testid="element-container"] {
-    position: fixed !important;
-    top: 15vh !important;
-    left: 50% !important;
-    transform: translateX(180px) !important;
-    z-index: 2147483647 !important;
-    pointer-events: auto !important;
+/* Modal Specific Classes */
+.close-btn-html {
+    position: absolute; top: 20px; right: 20px;
+    border-radius: 50%; width: 42px; height: 42px;
+    border: 1px solid #EAECEF; background: white; color: black;
+    font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 100;
 }
-div[data-testid="element-container"]:has(.marker-close) + div[data-testid="element-container"] button {
-    border-radius: 50% !important;
-    width: 48px !important;
-    height: 48px !important;
-    padding: 0 !important;
-    border: 1px solid #EAECEF !important;
-    background: white !important;
-    color: #000000 !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
-    min-width: 48px !important;
-    pointer-events: auto !important;
+.start-btn-html {
+    background: #2B5CD9; color: white; border: none; border-radius: 32px;
+    padding: 1rem 3.5rem; font-weight: 600; font-size: 1.1rem; cursor: pointer;
+    box-shadow: 0 10px 25px rgba(43,92,217,0.4);
 }
-
-/* 2. Start Button */
-div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] {
-    position: fixed !important;
-    top: 52% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    z-index: 2147483647 !important;
-    pointer-events: auto !important;
+.start-btn-html:hover { background: #1e4bb3; }
+.complete-btn-html {
+    background: #FFFFFF; color: #1a1d27; border: 1px solid #EAECEF; border-radius: 24px;
+    padding: 0.8rem 2.5rem; font-weight: 600; cursor: pointer;
+    align-self: center; margin-top: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] button {
-    background: #2B5CD9 !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 32px !important;
-    padding: 1rem 3.5rem !important;
-    font-weight: 600 !important;
-    font-size: 1.1rem !important;
-    box-shadow: 0 10px 25px rgba(43, 92, 217, 0.4) !important;
-    width: auto !important;
-    pointer-events: auto !important;
-}
-
-/* 3. Mark as Complete Button */
-div[data-testid="element-container"]:has(.marker-complete) + div[data-testid="element-container"] {
-    position: fixed !important;
-    z-index: 2147483647 !important;
-    left: 50% !important;
-    bottom: 8vh !important;
-    transform: translateX(-50%) !important;
-    pointer-events: auto !important;
-}
-div[data-testid="element-container"]:has(.marker-complete) + div[data-testid="element-container"] button {
-    pointer-events: auto !important;
-}
-div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] button:hover {
-    background: #1e4bb3 !important;
-}
-.st-pos {
-    position: fixed !important;
-    z-index: 2147483647 !important;
-}
-.complete-pos {
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 4rem);
-    margin-bottom: 0 !important;
-}
-.complete-pos button {
-    width: 100% !important;
+.complete-btn-html.btn-completed {
+    background: #4CAF50; color: white; border-color: #4CAF50;
 }
 .video-start-overlay {
     position: absolute;
@@ -680,7 +626,29 @@ div[data-testid="element-container"]:has(.marker-start) + div[data-testid="eleme
 </style>
 """, unsafe_allow_html=True)
 
-# Global JS Bridge Injection Removed
+# Global JS Bridge Injection
+st.markdown("""
+<script>
+window.sendMovySignal = function(signalName) {
+    console.log("Attempting to send signal: " + signalName);
+    
+    const clickButtonInContext = (doc) => {
+        const buttons = Array.from(doc.querySelectorAll('button'));
+        const target = buttons.find(b => b.textContent.includes(signalName));
+        if (target) {
+            target.click();
+            return true;
+        }
+        return false;
+    };
+
+    if (clickButtonInContext(document)) return;
+    if (window.parent && window.parent.document && clickButtonInContext(window.parent.document)) return;
+    
+    console.error("Failed to find signal button: " + signalName);
+}
+</script>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -1436,12 +1404,22 @@ def render_video_overlay(video_name, data):
     completed = st.session_state.get("video_completed", False)
     v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
     
-    start_overlay_shell = '<div class="video-start-overlay"></div>' if not started else ""
+    start_overlay_shell = ""
+    if not started:
+        start_overlay_shell = """
+        <div class="video-start-overlay" style="display:flex; align-items:center; justify-content:center;">
+            <button class="start-btn-html" onclick="sendMovySignal('SIG_START')">Start  →</button>
+        </div>
+        """
+    
+    comp_class = "btn-completed" if completed else ""
+    comp_text = "Completed ✓" if completed else "Mark as complete"
     
     # Construct the full HTML in one go to ensure perfect containment
     full_modal_html = f"""
     <div class="video-overlay">
         <div class="video-modal-content">
+            <button class="close-btn-html" onclick="sendMovySignal('SIG_CLOSE')">X</button>
             <div class="video-modal-header">
                 <div class="video-modal-title">{data['title']}</div>
             </div>
@@ -1458,29 +1436,23 @@ def render_video_overlay(video_name, data):
                     <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                 </video>
             </div>
-            <div style="height:80px; margin-top:1.5rem;"></div> <!-- space for complete btn -->
+            <button class="complete-btn-html {comp_class}" onclick="sendMovySignal('SIG_COMPLETE')">{comp_text}</button>
         </div>
     </div>
     """
-    # 1. Native Buttons with Invisible Sibling Markers
-    # Close Button
-    st.markdown('<div class="btn-marker marker-close"></div>', unsafe_allow_html=True)
-    if st.button("X", key="modal_close_native"):
+    
+    # 1. Global Invisible Signal Receivers
+    st.markdown('<div style="display:none;">', unsafe_allow_html=True)
+    if st.button("SIG_CLOSE"):
         st.session_state.show_video_overlay = False
         st.rerun()
-
-    # Start Button Overlay
-    if not started:
-        st.markdown('<div class="btn-marker marker-start"></div>', unsafe_allow_html=True)
-        if st.button("Start  →", key="modal_start_native"):
-            st.session_state.video_started = True
-            st.rerun()
-
-    # Mark as complete Button
-    st.markdown('<div class="btn-marker marker-complete"></div>', unsafe_allow_html=True)
-    if st.button("Mark as complete", key="mark_complete_btn"):
+    if st.button("SIG_START"):
+        st.session_state.video_started = True
+        st.rerun()
+    if st.button("SIG_COMPLETE"):
         st.session_state.video_completed = True
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 2. Render Modal Shell
     st.markdown(full_modal_html, unsafe_allow_html=True)
