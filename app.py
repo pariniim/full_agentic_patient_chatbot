@@ -1161,8 +1161,8 @@ if st.session_state.show_splash:
         """, unsafe_allow_html=True)
         
         btn_labels = {
-            "onboarding": "Appointment  →",
-            "programme_selection": "View Programme  →",
+            "onboarding": "Start Onboarding  →",
+            "programme_selection": "Appointment  →",
             "in_session": "Begin Session  →",
             "post_session": "Start Check-In  →",
             "pt_summary": "View Summary  →"
