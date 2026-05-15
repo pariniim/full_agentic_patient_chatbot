@@ -383,8 +383,8 @@ section[data-testid="stSidebar"]{display:none;}
 
 /* Streamlit button overrides */
 .stButton>button{background: #2B5CD9 !important; color:#FFFFFF !important; border:none;
-  border-radius:24px;font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:600;
-  padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;
+  border-radius:24px;font-family:'Inter',sans-serif;font-size:1rem;font-weight:600;
+  padding:0.8rem 3rem 0.8rem 2rem;cursor:pointer;transition:all 0.2s;
   white-space: nowrap !important;
   box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
 .stButton>button:hover{background: #1e4bb3 !important; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
@@ -1352,7 +1352,7 @@ def render_video_overlay(video_name, data):
     
     # Action Bar
     st.divider()
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1, 0.2, 1.5])
     
     with col1:
         if st.button("← Back to Chat", use_container_width=True):
@@ -1372,7 +1372,7 @@ def render_video_overlay(video_name, data):
             # Force the LLM to reply automatically to this trigger
             st.session_state.force_llm_reply = True
             
-            st.session_state.in_session_step = "ex1_checkin_pending"
+            st.session_state.in_session_step = "ex1_completed"
             st.rerun()
 
 
@@ -1855,7 +1855,10 @@ if trigger_llm:
     # Defensive fallbacks: if the LLM responded but forgot to emit a signal,
     # advance the state manually so the flow never gets stuck.
     _step = st.session_state.get("in_session_step")
-    if _step == "ex1_checkin_pending":
+    if _step == "ex1_completed":
+        # The LLM just generated the check-in question. Now we wait for user reply.
+        st.session_state.in_session_step = "ex1_checkin_pending"
+    elif _step == "ex1_checkin_pending":
         # Detect whether the LLM is asking for a pain rating (forgot the
         # checkin_pain_followup signal) rather than giving a closing reply.
         _pain_rating_keywords = [
