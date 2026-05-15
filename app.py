@@ -637,6 +637,44 @@ div.stButton {
     border-radius: 20px;
     overflow: hidden;
     background: #f8f9fa;
+    position: relative; /* For overlay positioning */
+}
+.video-start-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.start-cta-container {
+    margin-bottom: 0 !important;
+}
+.start-cta-container button {
+    background: #FFFFFF !important;
+    color: #1a1d27 !important;
+    border-radius: 24px !important;
+    padding: 0.6rem 2.5rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+}
+.mark-complete-container {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+.mark-complete-container button {
+    width: 100% !important;
+    border-radius: 12px !important;
+    padding: 0.75rem !important;
+    font-weight: 600 !important;
+    transition: all 0.3s !important;
+}
+.btn-completed button {
+    background-color: #22c55e !important;
+    color: white !important;
+    border: none !important;
 }
 .video-container-inner video {
     width: 100%;
@@ -1286,10 +1324,12 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
             st.session_state.in_session_step = "ex1_ready"
             st.session_state.show_video_overlay = True
             st.session_state.current_video = "Ex01_square.mp4"
+            st.session_state.video_started = False
+            st.session_state.video_completed = False
             # Pass data for the overlay
             st.session_state.overlay_data = {
                 "title": "Exercise 1",
-                "reps": 3, "sets": 3, "hold": 5
+                "reps": 5, "sets": 3, "hold": 5
             }
             st.rerun()
 
@@ -1323,16 +1363,49 @@ def render_video_overlay(video_name, data):
                             <div class="param-divider"></div>
                             <div>Sets {data['sets']}</div>
                             <div class="param-divider"></div>
-                            <div>Hold {data['hold']} sec</div>
+                            <div>Hold {data['hold']} seconds</div>
                         </div>
                         <div class="video-container-inner">
-                            <video autoplay loop muted playsinline controls>
+            """, unsafe_allow_html=True)
+            
+            # Start Overlay Logic
+            if not st.session_state.get("video_started", False):
+                st.markdown('<div class="video-start-overlay"><div class="start-cta-container">', unsafe_allow_html=True)
+                if st.button("Start", key="start_video_cta"):
+                    st.session_state.video_started = True
+                    st.rerun()
+                st.markdown('</div></div>', unsafe_allow_html=True)
+                # Still show video but paused/muted/hidden behind overlay
+                v_props = "muted playsinline"
+            else:
+                v_props = "autoplay loop muted playsinline controls"
+
+            st.markdown(f"""
+                            <video {v_props}>
                                 <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                             </video>
                         </div>
-                    </div>
-                </div>
             """, unsafe_allow_html=True)
+            
+            # Mark as complete button
+            st.markdown(f'<div class="mark-complete-container {"btn-completed" if st.session_state.get("video_completed") else ""}">', unsafe_allow_html=True)
+            if st.button("Mark as complete", key="mark_complete_btn"):
+                st.session_state.video_completed = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Logic to close and trigger check-in
+            if st.session_state.get("video_completed"):
+                time.sleep(0.5) # brief pause to show green state
+                st.session_state.show_video_overlay = False
+                # Trigger Movy check-in
+                _trigger = "I have finished the exercise. How am I doing?"
+                st.session_state.full_history.append({"role": "user", "content": _trigger})
+                st.session_state.messages.append({"role": "user", "content": _trigger})
+                st.session_state.in_session_step = "ex1_checkin_pending"
+                st.rerun()
+
+            st.markdown('</div></div>', unsafe_allow_html=True)
     else:
         st.error(f"Video {video_name} not found.")
         if st.button("Close"):
