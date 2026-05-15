@@ -454,8 +454,9 @@ div.stButton {
 /* Redesigned Summary Pills */
 .pill-row {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 0.3rem;
+    width: 100%;
 }
 .pill-container {
     display: flex;
@@ -472,12 +473,13 @@ div.stButton {
 .param-pill {
     width: 100%;
     border: none;
-    padding: 0.45rem 0.6rem;
-    text-align: center;
+    padding: 0.45rem 0;
+    text-align: left;
     font-size: 0.95rem;
     font-weight: 600;
     color: #1a1d27;
     background: transparent;
+    white-space: nowrap;
 }
 .exercise-title {
     font-size: 1.1rem;
@@ -504,8 +506,9 @@ div.stButton {
     padding: 0.5rem 0;
     width: 100%;
     gap: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #1a1d27;
+    white-space: nowrap;
 }
 
 .clinical-label {
@@ -1134,6 +1137,13 @@ def render_video_widget(n: int):
 
 def render_appointment_summary():
     render_header()
+    
+    # Temporarily widen the container for the summary view
+    st.markdown("""
+        <style>
+        .block-container { max-width: 850px !important; }
+        </style>
+    """, unsafe_allow_html=True)
     
     st.markdown('<div class="appointment-summary-container">', unsafe_allow_html=True)
     
