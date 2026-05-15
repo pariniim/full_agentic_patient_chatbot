@@ -1402,6 +1402,10 @@ def render_video_overlay(video_name, data):
             </script>
             """
             
+            start_overlay_html = ""
+            if not started:
+                start_overlay_html = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>'
+            
             # 1. Render the FULL modal shell with HTML Buttons
             st.markdown(f"""
                 {js_bridge}
@@ -1421,7 +1425,7 @@ def render_video_overlay(video_name, data):
                             <div>Hold {data['hold']} seconds</div>
                         </div>
                         <div class="video-container-inner" style="height:480px; position:relative;">
-                            {f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\\'HIDDEN_START\\')">Start</button></div>' if not started else ""}
+                            {start_overlay_html}
                             <video {v_props} style="height:100%; object-fit:cover;">
                                 <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                             </video>
