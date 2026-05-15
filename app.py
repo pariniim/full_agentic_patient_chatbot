@@ -1086,14 +1086,23 @@ components.html(f"""
         recognition.onresult = function(event) {{
             console.log("Movy: Speech Recognition result received.");
             var text = event.results[0][0].transcript;
-            var input = doc.querySelector('.stChatInput textarea');
-            var btn = doc.querySelector('.stChatInput button');
-            if (input && btn) {{
-                input.value = text;
-                input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                setTimeout(function() {{ btn.click(); }}, 100);
-            }}
+            var textarea = doc.querySelector('.stChatInput textarea');
+            if (!textarea) return;
+
+            // React-safe value injection
+            var nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
+            nativeTextareaValueSetter.call(textarea, text);
+            textarea.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            
+            // Wait a beat for React to sync, then find and click the send button
+            setTimeout(function() {{
+                var btn = doc.querySelector('.stChatInput button[data-testid="stChatInputSubmitButton"]') || 
+                          doc.querySelector('.stChatInput button');
+                if (btn) {{
+                    btn.click();
+                    console.log("Movy: Auto-sent voice message.");
+                }}
+            }}, 150);
         }};
 
         recognition.onerror = function(event) {{
