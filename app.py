@@ -1294,18 +1294,18 @@ def render_video_overlay(video_name, data):
         .block-container hr {
             margin: 1rem 0 !important;
         }
+        .block-container [data-testid="stMetric"] {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
         .block-container [data-testid="stMetricValue"] {
             color: #1a1d27 !important;
             font-size: 1.6rem !important;
-            text-align: center !important;
-        }
-        .block-container [data-testid="stMetricValue"] > div {
-            justify-content: center !important;
         }
         .block-container [data-testid="stMetricLabel"] {
             color: #5A6480 !important;
-            text-align: center !important;
-            justify-content: center !important;
         }
         </style>
     """, unsafe_allow_html=True)
