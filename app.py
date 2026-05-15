@@ -945,22 +945,25 @@ if st.session_state.show_splash:
     }
     conclude, introduce = messages.get(target, ("Moving forward...", "Let's continue."))
     
-    # Specialized video for onboarding conclusion
-    video_path = "assets/videos/parlata.mov" if target == "programme_selection" else "assets/videos/Idle.mov"
-    
-    import base64
-    video_html = ""
-    try:
-        with open(video_path, "rb") as f:
-            v_b64 = base64.b64encode(f.read()).decode()
-            video_html = f'<video class="splash-video" autoplay loop muted playsinline><source src="data:video/quicktime;base64,{v_b64}" type="video/quicktime"></video>'
-    except:
-        video_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
+    # Media logic for splash screen
+    media_html = ""
+    if target == "onboarding":
+        _logo_b64 = load_logo_b64()
+        media_html = f'<img src="data:image/png;base64,{_logo_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
+    else:
+        video_path = "assets/videos/parlata.mov" if target == "programme_selection" else "assets/videos/Idle.mov"
+        import base64
+        try:
+            with open(video_path, "rb") as f:
+                v_b64 = base64.b64encode(f.read()).decode()
+                media_html = f'<video class="splash-video" autoplay loop muted playsinline><source src="data:video/quicktime;base64,{v_b64}" type="video/quicktime"></video>'
+        except:
+            media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
 
     st.markdown(f"""
     <div class="splash-container">
         <div class="splash-video-container">
-            {video_html}
+            {media_html}
         </div>
         <h2 style="color:#2B5CD9; margin-bottom:0.5rem; text-align:center;">{conclude}</h2>
         <p style="color:#5A6480; font-size:1.1rem; margin-bottom:2rem; text-align:center;">{introduce}</p>
