@@ -388,15 +388,31 @@ section[data-testid="stSidebar"]{display:none;}
 /* No secondary buttons - all CTAs should be blue/white */
 
 
-/* Splash Screen */
-.splash-container {
+.splash-fullscreen {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #FAF6F2;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 2rem;
+    box-sizing: border-box;
+}}
+
+.splash-content {{
+    max-width: 480px;
+    width: 100%;
     text-align: center;
-    gap: 2rem;
-    padding: 4rem 1rem;
-}
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0; /* No gap; handled by margins */
+}}
 
 </style>
 """, unsafe_allow_html=True)
@@ -707,7 +723,7 @@ def process_signal(sig: dict):
 # ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_logo_b64() -> str | None:
-    p = Path("assets/images/movy_logo1.png")
+    p = Path("assets/images/LogoCircle1.png")
     if p.exists():
         return base64.b64encode(p.read_bytes()).decode()
     return None
@@ -948,8 +964,16 @@ if st.session_state.show_splash:
     # Media logic for splash screen
     media_html = ""
     if target == "onboarding":
-        _logo_b64 = load_logo_b64()
-        media_html = f'<img src="data:image/png;base64,{_logo_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
+        import base64
+        p_svg = Path("assets/images/movy_logo1.svg")
+        if p_svg.exists():
+            svg_b64 = base64.b64encode(p_svg.read_bytes()).decode()
+            media_html = f'<img src="data:image/svg+xml;base64,{svg_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
+        else:
+            p_png = Path("assets/images/movy_logo1.png")
+            if p_png.exists():
+                png_b64 = base64.b64encode(p_png.read_bytes()).decode()
+                media_html = f'<img src="data:image/png;base64,{png_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
     else:
         video_path = "assets/videos/parlata.mov" if target == "programme_selection" else "assets/videos/Idle.mov"
         import base64
@@ -961,13 +985,13 @@ if st.session_state.show_splash:
             media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
 
     st.markdown(f"""
-    <div class="splash-container">
-        <div class="splash-video-container">
-            {media_html}
-        </div>
-        <h2 style="color:#2B5CD9; margin-bottom:0.5rem; text-align:center;">{conclude}</h2>
-        <p style="color:#5A6480; font-size:1.1rem; margin-bottom:2rem; text-align:center;">{introduce}</p>
-    </div>
+    <div class="splash-fullscreen">
+        <div class="splash-content">
+            <div class="splash-video-container" style="margin-bottom: 0;">
+                {media_html}
+            </div>
+            <h2 style="color:#2B5CD9; margin-top:0.25rem; margin-bottom:0; font-size:2.4rem;">{conclude}</h2>
+            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.15rem; margin-bottom:1.5rem;">{introduce}</p>
     """, unsafe_allow_html=True)
 
     btn_labels = {
@@ -978,15 +1002,14 @@ if st.session_state.show_splash:
         "pt_summary": "View Summary  →"
     }
     lbl = btn_labels.get(target, "Continue  →")
-    _, btn_col, _ = st.columns([1, 2, 1])
-    with btn_col:
-        if st.button(lbl, use_container_width=True):
-            st.session_state.show_splash = False
-            # RESET CHAT HISTORY FOR NEW SECTION
-            st.session_state.messages = []
-            st.session_state.phase = target
-            st.rerun()
-    st.stop()
+    # Centered button inside the fullscreen flexbox
+    if st.button(lbl, key="splash_btn", use_container_width=False):
+        st.session_state.show_splash = False
+        st.session_state.messages = []
+        st.session_state.phase = target
+        st.rerun()
+    
+    st.markdown("</div></div>", unsafe_allow_html=True)
     st.stop()
 else:
     render_header()
