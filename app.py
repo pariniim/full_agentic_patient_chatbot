@@ -1296,9 +1296,16 @@ def render_video_overlay(video_name, data):
         }
         .block-container [data-testid="stMetricValue"] {
             color: #1a1d27 !important;
+            font-size: 1.6rem !important;
+            text-align: center !important;
+        }
+        .block-container [data-testid="stMetricValue"] > div {
+            justify-content: center !important;
         }
         .block-container [data-testid="stMetricLabel"] {
             color: #5A6480 !important;
+            text-align: center !important;
+            justify-content: center !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -1306,11 +1313,11 @@ def render_video_overlay(video_name, data):
     with st.container():
         st.markdown(f"<h2 style='margin-top:0; margin-bottom:1rem; text-align:center;'>{data['title']}</h2>", unsafe_allow_html=True)
         
-        # Clinical Parameters
-        cols = st.columns(3)
-        cols[0].metric("Reps", data['reps'])
-        cols[1].metric("Sets", data['sets'])
-        cols[2].metric("Hold", f"{data['hold']}s")
+        # Clinical Parameters (Centered block)
+        _, c1, c2, c3, _ = st.columns([1, 0.8, 0.8, 0.8, 1])
+        c1.metric("Reps", data['reps'])
+        c2.metric("Sets", data['sets'])
+        c3.metric("Hold", f"{data['hold']}s")
         
         st.divider()
         
