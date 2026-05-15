@@ -579,25 +579,46 @@ div.stButton {
 }
 .html-btn:hover { background: #F8F9FA; border-color: #D1D5DB; }
 
-.html-start-btn {
+.html-start-btn:active {
+    transform: translateY(0) !important;
+}
+/* Pinning native buttons to the modal */
+.st-close-pin {
+    position: absolute !important;
+    top: calc(50% - 330px);
+    left: calc(50% + 175px);
+    z-index: 12000;
+}
+.st-close-pin button {
+    border-radius: 50% !important;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border: 1px solid #EAECEF !important;
+    background: white !important;
+    color: #000000 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+.st-start-pin {
+    position: absolute !important;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 12000;
+}
+.st-start-pin button {
     background: #2B5CD9 !important;
     color: #FFFFFF !important;
     border: none !important;
     border-radius: 24px !important;
     padding: 0.8rem 2.8rem !important;
     font-weight: 600 !important;
-    cursor: pointer !important;
     font-size: 1.05rem !important;
     box-shadow: 0 8px 20px rgba(43, 92, 217, 0.3) !important;
-    transition: all 0.2s ease !important;
+    width: auto !important;
 }
-.html-start-btn:hover {
+.st-start-pin button:hover {
     background: #1e4bb3 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 10px 24px rgba(43, 92, 217, 0.4) !important;
-}
-.html-start-btn:active {
-    transform: translateY(0) !important;
 }
 /* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
@@ -654,27 +675,7 @@ div.stButton {
 </style>
 """, unsafe_allow_html=True)
 
-# Global JS Bridge Injection
-st.markdown("""
-<script>
-window.triggerSt = function(label) {
-    console.log('Movy Bridge: Signaling ' + label);
-    // Search both current and parent documents (Streamlit environment safe)
-    const findIn = (doc) => {
-        const btns = Array.from(doc.querySelectorAll('button'));
-        return btns.find(b => b.innerText.trim() === label || b.textContent.includes(label));
-    };
-
-    let target = findIn(document) || findIn(window.parent.document);
-
-    if (target) {
-        target.click();
-    } else {
-        console.error('Movy Bridge: Logic Signal "' + label + '" not found.');
-    }
-}
-</script>
-""", unsafe_allow_html=True)
+# Global JS Bridge Injection Removed - Using Native Streamlit Buttons
 
 st.markdown("""
 <style>
@@ -1441,9 +1442,6 @@ def render_video_overlay(video_name, data):
         <div class="video-modal-content">
             <div class="video-modal-header">
                 <div class="video-modal-title">{data['title']}</div>
-                <div class="video-modal-btns">
-                    <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">X</button>
-                </div>
             </div>
             <div class="video-modal-params">
                 <div>Reps {data['reps']}</div>
@@ -1453,7 +1451,6 @@ def render_video_overlay(video_name, data):
                 <div>Hold {data['hold']} seconds</div>
             </div>
             <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
-                {start_overlay}
                 <video {v_props} style="width:100%; height:100%; object-fit:cover;">
                     <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                 </video>
@@ -1464,7 +1461,22 @@ def render_video_overlay(video_name, data):
     """
     st.markdown(full_modal_html, unsafe_allow_html=True)
 
-    # Buttons are now handled globally
+    # 2. Pin Native Buttons over the HTML Shell
+    # Close Button
+    st.markdown('<div class="st-close-pin">', unsafe_allow_html=True)
+    if st.button("X", key="modal_close_native"):
+        st.session_state.show_video_overlay = False
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Start Button Overlay
+    if not started:
+        st.markdown('<div class="video-start-overlay"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="st-start-pin">', unsafe_allow_html=True)
+        if st.button("Start  →", key="modal_start_native"):
+            st.session_state.video_started = True
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # Mark as complete Button (Positional container)
     st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
@@ -1488,16 +1500,6 @@ def render_video_overlay(video_name, data):
             st.session_state.show_video_overlay = False
             st.rerun()
 
-
-# ── Global Logic Signals (Invisible) ──────────────────────────────────────────
-st.markdown('<div style="position:fixed; top:-999px; left:-999px; opacity:0; pointer-events:none;">', unsafe_allow_html=True)
-if st.button("HIDDEN_CLOSE", key="global_close_sig"):
-    st.session_state.show_video_overlay = False
-    st.rerun()
-if st.button("HIDDEN_START", key="global_start_sig"):
-    st.session_state.video_started = True
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
 if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
