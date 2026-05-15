@@ -564,8 +564,11 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Pinning native buttons to the modal - Absolute Center-Translate Logic */
-.st-close-pin {
+/* Markers are hidden from view */
+.btn-marker { display: none !important; }
+
+/* 1. Close Button (X) */
+div[data-testid="element-container"]:has(.marker-close) + div[data-testid="element-container"] {
     position: fixed !important;
     top: 15vh !important;
     left: 50% !important;
@@ -573,7 +576,7 @@ div.stButton {
     z-index: 2147483647 !important;
     pointer-events: auto !important;
 }
-.st-close-pin button {
+div[data-testid="element-container"]:has(.marker-close) + div[data-testid="element-container"] button {
     border-radius: 50% !important;
     width: 48px !important;
     height: 48px !important;
@@ -585,7 +588,9 @@ div.stButton {
     min-width: 48px !important;
     pointer-events: auto !important;
 }
-.st-start-pin {
+
+/* 2. Start Button */
+div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] {
     position: fixed !important;
     top: 52% !important;
     left: 50% !important;
@@ -593,7 +598,7 @@ div.stButton {
     z-index: 2147483647 !important;
     pointer-events: auto !important;
 }
-.st-start-pin button {
+div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] button {
     background: #2B5CD9 !important;
     color: #FFFFFF !important;
     border: none !important;
@@ -605,7 +610,9 @@ div.stButton {
     width: auto !important;
     pointer-events: auto !important;
 }
-.st-pos {
+
+/* 3. Mark as Complete Button */
+div[data-testid="element-container"]:has(.marker-complete) + div[data-testid="element-container"] {
     position: fixed !important;
     z-index: 2147483647 !important;
     left: 50% !important;
@@ -613,10 +620,10 @@ div.stButton {
     transform: translateX(-50%) !important;
     pointer-events: auto !important;
 }
-.st-pos button {
+div[data-testid="element-container"]:has(.marker-complete) + div[data-testid="element-container"] button {
     pointer-events: auto !important;
 }
-.st-start-pin button:hover {
+div[data-testid="element-container"]:has(.marker-start) + div[data-testid="element-container"] button:hover {
     background: #1e4bb3 !important;
 }
 .st-pos {
@@ -1455,28 +1462,25 @@ def render_video_overlay(video_name, data):
         </div>
     </div>
     """
-    # 1. Pin Native Buttons FIRST to ensure they are on the top layer
+    # 1. Native Buttons with Invisible Sibling Markers
     # Close Button
-    st.markdown('<div class="st-close-pin">', unsafe_allow_html=True)
+    st.markdown('<div class="btn-marker marker-close"></div>', unsafe_allow_html=True)
     if st.button("X", key="modal_close_native"):
         st.session_state.show_video_overlay = False
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # Start Button Overlay
     if not started:
-        st.markdown('<div class="st-start-pin">', unsafe_allow_html=True)
+        st.markdown('<div class="btn-marker marker-start"></div>', unsafe_allow_html=True)
         if st.button("Start  →", key="modal_start_native"):
             st.session_state.video_started = True
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Mark as complete Button (Positional container)
-    st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
+    # Mark as complete Button
+    st.markdown('<div class="btn-marker marker-complete"></div>', unsafe_allow_html=True)
     if st.button("Mark as complete", key="mark_complete_btn"):
         st.session_state.video_completed = True
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # 2. Render Modal Shell
     st.markdown(full_modal_html, unsafe_allow_html=True)
