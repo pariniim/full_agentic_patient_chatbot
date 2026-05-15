@@ -536,35 +536,76 @@ div.stButton {
     border: 1px solid #EAECEF;
 }
 
-/* Video Overlay Styles */
+/* Premium Video Modal Overlay */
 .video-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.85);
+    background: rgba(255,255,255,0.7);
     z-index: 11000;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
 }
 .video-modal-content {
+    background: white;
     width: 90%;
-    max-width: 600px;
+    max-width: 450px;
+    border-radius: 32px;
+    padding: 1.5rem;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+}
+.video-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.video-modal-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1d27;
+}
+.video-modal-btns {
+    display: flex;
+    gap: 0.75rem;
+}
+.circle-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid #E0E2E7;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #1a1d27;
+}
+.video-modal-params {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #8E98B0;
+    font-size: 0.95rem;
+}
+.param-divider {
+    width: 1px;
+    background: #EAECEF;
+    height: 20px;
+}
+.video-container-inner {
+    width: 100%;
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    background: #f8f9fa;
 }
-.video-modal-content video {
+.video-container-inner video {
     width: 100%;
     display: block;
-}
-.close-overlay-btn {
-    position: fixed;
-    top: 2rem;
-    right: 2rem;
-    z-index: 11001;
 }
 
 .splash-native-btn {
@@ -1210,9 +1251,14 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
             st.session_state.in_session_step = "ex1_ready"
             st.session_state.show_video_overlay = True
             st.session_state.current_video = "Ex01_square.mp4"
+            # Pass data for the overlay
+            st.session_state.overlay_data = {
+                "title": "Exercise 1",
+                "reps": 5, "sets": 3, "hold": 5
+            }
             st.rerun()
 
-def render_video_overlay(video_name):
+def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
     if video_path.exists():
         with open(video_path, "rb") as f:
@@ -1220,16 +1266,31 @@ def render_video_overlay(video_name):
             st.markdown(f"""
                 <div class="video-overlay">
                     <div class="video-modal-content">
-                        <video autoplay loop muted playsinline>
-                            <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
-                        </video>
+                        <div class="video-modal-header">
+                            <div class="video-modal-title">[{data['title']}]</div>
+                            <div class="video-modal-btns">
+                                <div class="circle-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></div>
+                            </div>
+                        </div>
+                        <div class="video-modal-params">
+                            <div>Reps [{data['reps']}]</div>
+                            <div class="param-divider"></div>
+                            <div>Sets [{data['sets']}]</div>
+                            <div class="param-divider"></div>
+                            <div>Hold [{data['hold']} sec]</div>
+                        </div>
+                        <div class="video-container-inner">
+                            <video autoplay loop muted playsinline controls>
+                                <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
+                            </video>
+                        </div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
             
-        # Streamlit button to close, positioned top right via CSS
-        st.markdown('<div class="close-overlay-btn">', unsafe_allow_html=True)
-        if st.button("Close [X]", key="close_vid_overlay"):
+        # Close button in overlay context
+        st.markdown('<div class="close-overlay-btn" style="position:fixed; top:calc(50% - 220px); right:calc(50% - 200px); z-index:11002;">', unsafe_allow_html=True)
+        if st.button("✕", key="close_vid_overlay"):
             st.session_state.show_video_overlay = False
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1241,7 +1302,7 @@ def render_video_overlay(video_name):
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
 if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
-    render_video_overlay(st.session_state.current_video)
+    render_video_overlay(st.session_state.current_video, st.session_state.get("overlay_data", {"title":"Exercise", "reps":0, "sets":0, "hold":0}))
     st.stop()
 
 # ── Splash screen ────────────────────────────────────────────────────────────
