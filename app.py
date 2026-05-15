@@ -417,7 +417,6 @@ Option B: Exercise 2 → Exercise 1
 
 Store exercise_1_name = "Exercise 1"
 Store exercise_2_name = "Exercise 2"
-(Only the labels are stored; filenames are never spoken.)
 
 Say:
 "Perfect, I've prepared two exercises for you. Let's begin."
@@ -428,9 +427,11 @@ Then emit:
 ══════════════════════════════════════
 PHASE 3 — IN-SESSION
 ══════════════════════════════════════
-Step A: Introduce Exercise 1 warmly.
+Movy is PROACTIVE. Once the session starts, immediately introduce Exercise 1.
+
+Step A: Introduce Exercise 1 warmly and encouragingly.
 Say:
-"Let's start with your first exercise. Follow the video and take your time."
+"Let's start with your first exercise. Follow the video and take your time — I'm right here if you need anything."
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":1}}</MOVY_SIGNAL>
@@ -441,40 +442,38 @@ UI behaviour:
 Wait until the user presses the completion button.
 
 Step B: When the user marks Exercise 1 as complete:
-Address the user by their preferred_name and ask the mid-session check-in question warmly.
-For example: "Well done, [preferred_name]! How are you feeling?"
-(Always use their actual preferred_name, never the placeholder.)
+Address the user by their preferred_name and ask the mid-session check-in question with high empathy.
+Example: "Great job, [preferred_name]! How did that feel for you? Any discomfort or are you feeling energized?"
 
 ⚠ CRITICAL: Do NOT emit any signal here. Wait for the user to reply.
 
 Step B2: When the user replies to the check-in question:
-Classify their response as one of: energetic / tired / pain / unsure / positive / no_response.
-Store: mid_session_energy_level, mid_session_pain, mid_session_confusion.
+Analyze their response deeply for emotional cues (tone, fatigue, pain, enthusiasm).
+Classify: energetic / tired / pain / unsure / positive / no_response.
 
-Adapt your reply based on the classification:
+Adapt your reply with high empathy:
+- If they sound tired: "I hear you, it's okay to take a breather. You're doing great."
+- If they sound energetic: "Love that energy! You're crushing it."
+- If they mention any pain: "I'm sorry to hear that. Let's be careful."
 
 If the response is energetic / positive / tired / unsure / no_response:
-  - Respond warmly as instructed above.
+  - Acknowledge their feeling warmly.
   - Then emit:
     <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
 
 If the response mentions pain (any pain at all):
   - Do NOT emit checkin_resolved yet.
-  - Ask the user to rate their pain on a scale of 1–10.
+  - Ask: "On a scale of 1 to 10, how would you rate that pain right now?"
   - Then emit:
     <MOVY_SIGNAL>{{"action":"checkin_pain_followup"}}</MOVY_SIGNAL>
 
-Step B3: When the user replies with a pain rating (after checkin_pain_followup):
+Step B3: When the user replies with a pain rating:
   - If pain < 8:
-    - Acknowledge warmly, remind them to go at their own pace.
+    - "Thanks for letting me know. We'll keep an eye on it. Let's continue, but please go at a pace that feels safe for you."
     - Then emit:
       <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
   - If pain ≥ 8 (severe):
-    - Advise immediate stop.
-    - Recommend rest.
-    - Reassure that the physiotherapist will review.
-    - Do NOT continue unless the user explicitly insists.
-    - Do NOT mention Exercise 2.
+    - "That sounds quite intense. We should definitely stop here and rest. I'll make sure your physiotherapist knows so you can discuss it together. Take care of yourself."
     - Then emit:
       <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":false}}</MOVY_SIGNAL>
 
@@ -897,12 +896,10 @@ if st.session_state.phase == "programme_selection":
         msg = "I'm ready to start my session now."
         st.session_state.messages.append({"role": "user", "content": msg})
         st.session_state.full_history.append({"role": "user", "content": msg})
+        
+        # Step 1: Exercises Selection
         typing_ph = st.empty()
-        typing_ph.markdown(
-            '<div class="chat-row movy"><div class="typing-indicator">'
-            '<span></span><span></span><span></span></div></div>',
-            unsafe_allow_html=True,
-        )
+        typing_ph.markdown('<div class="chat-row movy"><div class="typing-indicator"><span></span><span></span><span></span></div></div>', unsafe_allow_html=True)
         reply = call_llm(st.session_state.full_history)
         typing_ph.empty()
         clean, sig = parse_signal(reply)
@@ -910,34 +907,25 @@ if st.session_state.phase == "programme_selection":
         st.session_state.messages.append({"role": "assistant", "content": clean})
         process_signal(sig)
 
-        # If exercises were just selected, immediately get the Exercise 1 intro
-        # so the video widget appears right away without another user interaction.
+        # Step 2: Proactive Intro (if LLM didn't already intro)
         if st.session_state.phase == "in_session" and st.session_state.in_session_step == "intro":
             typing_ph2 = st.empty()
-            typing_ph2.markdown(
-                '<div class="chat-row movy"><div class="typing-indicator">'
-                '<span></span><span></span><span></span></div></div>',
-                unsafe_allow_html=True,
-            )
-            # Inject a silent trigger so the LLM produces the intro text + signal.
-            # The trigger goes into full_history for context but is NOT shown in the UI.
-            _silent_trigger = "Please introduce the first exercise now."
-            _h2 = [*st.session_state.full_history,
-                   {"role": "user", "content": _silent_trigger}]
+            typing_ph2.markdown('<div class="chat-row movy"><div class="typing-indicator"><span></span><span></span><span></span></div></div>', unsafe_allow_html=True)
+            _trigger = "Please introduce the first exercise now."
+            # Call LLM with the trigger context
+            _h2 = [*st.session_state.full_history, {"role": "user", "content": _trigger}]
             reply2 = call_llm(_h2)
             typing_ph2.empty()
             clean2, sig2 = parse_signal(reply2)
-            # Add the silent trigger to history so the conversation is coherent
-            st.session_state.full_history.append({"role": "user", "content": _silent_trigger})
+            
+            st.session_state.full_history.append({"role": "user", "content": _trigger})
             st.session_state.full_history.append({"role": "assistant", "content": clean2})
-            # Only show Movy's reply if it has visible text (avoid empty bubbles)
             if clean2.strip():
                 st.session_state.messages.append({"role": "assistant", "content": clean2})
+            
             process_signal(sig2)
-            # Defensive: if the LLM didn't emit the introduce_exercise signal,
-            # force the step forward so the video widget always appears.
-            if st.session_state.phase == "in_session" and st.session_state.in_session_step == "intro":
-                st.session_state.in_session_step = "ex1_ready"
+            # HARD FALLBACK: Ensure the video appears even if the signal was missing
+            st.session_state.in_session_step = "ex1_ready"
 
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
