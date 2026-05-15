@@ -410,7 +410,7 @@ section[data-testid="stSidebar"]{display:none;}
     gap: 0;
 }
 
-.splash-native-btn {{
+.splash-native-btn {
     background: #2B5CD9 !important;
     color: #FFFFFF !important;
     border: none;
@@ -423,13 +423,21 @@ section[data-testid="stSidebar"]{display:none;}
     transition: all 0.2s;
     margin-top: 1.5rem;
     box-shadow: 0 4px 12px rgba(43, 92, 217, 0.25);
-}}
+}
 
-.splash-native-btn:hover {{
+.splash-native-btn:hover {
     background: #1e4bb3 !important;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(43, 92, 217, 0.35);
-}}
+}
+
+/* Ensure the streamlit button for splash is centered and visible */
+.splash-btn-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 2rem;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -1008,17 +1016,23 @@ if st.session_state.show_splash:
                 {media_html}
             </div>
             <h2 style="color:#2B5CD9; margin-top:0.2rem; margin-bottom:0; font-size:2.6rem; font-weight:600;">{conclude}</h2>
-            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.1rem; margin-bottom:2rem;">{introduce}</p>
+            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.1rem; margin-bottom:1rem;">{introduce}</p>
+            <div id="splash-btn-placeholder"></div>
         </div>
     </div>
     <style>
-        /* Force the specific Streamlit button to overlay or appear centered */
+        /* Inject the button into the fullscreen view */
         div.stButton > button[key="splash_btn"] {{
             position: fixed;
-            top: 70%; /* Adjusted to be perfectly under the text */
+            top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, 140px); /* Position it relative to center */
             z-index: 10000;
+            background: #2B5CD9 !important;
+            color: white !important;
+            padding: 0.8rem 2.5rem !important;
+            border-radius: 30px !important;
+            font-size: 1rem !important;
         }}
     </style>
     """, unsafe_allow_html=True)
@@ -1031,6 +1045,8 @@ if st.session_state.show_splash:
         "pt_summary": "View Summary  →"
     }
     lbl = btn_labels.get(target, "Continue  →")
+    
+    # Render the button - the CSS above will handle the centering
     if st.button(lbl, key="splash_btn"):
         st.session_state.show_splash = False
         st.session_state.messages = []
