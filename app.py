@@ -582,8 +582,23 @@ div.stButton {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     color: #1a1d27;
+}
+.close-btn-in-header {
+    margin-bottom: 0 !important;
+}
+.close-btn-in-header button {
+    border-radius: 50% !important;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border: 1px solid #E0E2E7 !important;
+    background-color: white !important;
+    color: #1a1d27 !important;
+    line-height: 42px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 .video-modal-params {
     display: flex;
@@ -1254,7 +1269,7 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
             # Pass data for the overlay
             st.session_state.overlay_data = {
                 "title": "Exercise 1",
-                "reps": 5, "sets": 3, "hold": 5
+                "reps": 3, "sets": 3, "hold": 5
             }
             st.rerun()
 
@@ -1263,21 +1278,32 @@ def render_video_overlay(video_name, data):
     if video_path.exists():
         with open(video_path, "rb") as f:
             v_b64 = base64.b64encode(f.read()).decode()
+            
+            # Use columns to place the button inside the header spot
             st.markdown(f"""
                 <div class="video-overlay">
                     <div class="video-modal-content">
                         <div class="video-modal-header">
-                            <div class="video-modal-title">[{data['title']}]</div>
+                            <div class="video-modal-title">{data['title']}</div>
                             <div class="video-modal-btns">
-                                <div class="circle-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></div>
+            """, unsafe_allow_html=True)
+            
+            # The actual Close button in the circle spot
+            st.markdown('<div class="close-btn-in-header">', unsafe_allow_html=True)
+            if st.button("✕", key="close_vid_overlay"):
+                st.session_state.show_video_overlay = False
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown(f"""
                             </div>
                         </div>
                         <div class="video-modal-params">
-                            <div>Reps [{data['reps']}]</div>
+                            <div>Reps {data['reps']}</div>
                             <div class="param-divider"></div>
-                            <div>Sets [{data['sets']}]</div>
+                            <div>Sets {data['sets']}</div>
                             <div class="param-divider"></div>
-                            <div>Hold [{data['hold']} sec]</div>
+                            <div>Hold {data['hold']} sec</div>
                         </div>
                         <div class="video-container-inner">
                             <video autoplay loop muted playsinline controls>
@@ -1287,13 +1313,6 @@ def render_video_overlay(video_name, data):
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-            
-        # Close button in overlay context
-        st.markdown('<div class="close-overlay-btn" style="position:fixed; top:calc(50% - 220px); right:calc(50% - 200px); z-index:11002;">', unsafe_allow_html=True)
-        if st.button("✕", key="close_vid_overlay"):
-            st.session_state.show_video_overlay = False
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.error(f"Video {video_name} not found.")
         if st.button("Close"):
