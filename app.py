@@ -798,8 +798,8 @@ UI behaviour:
 Wait until the user presses the completion button.
 
 Step B: When the user marks Exercise 1 as complete:
-Address the user by their preferred_name and ask the mid-session check-in question with high empathy.
-Example: "Great job, [preferred_name]! How did that feel for you? Any discomfort or are you feeling energized?"
+Address the user by their preferred_name and ask the mid-session check-in question.
+Example: "Great job on completing that exercise, [preferred_name]! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
 
 ⚠ CRITICAL: Do NOT emit any signal here. Wait for the user to reply.
 
@@ -1365,18 +1365,12 @@ def render_video_overlay(video_name, data):
             st.session_state.show_video_overlay = False
             
             # User bubble trigger
-            _trigger = "I have finished the exercise. How am I doing?"
+            _trigger = "I have finished the exercise."
             st.session_state.full_history.append({"role": "user", "content": _trigger})
             st.session_state.messages.append({"role": "user", "content": _trigger})
             
-            # Movy instant greeting using preferred name
-            pref_name = st.session_state.patient_data.get("preferred_name")
-            if not pref_name:
-                pref_name = st.session_state.patient_data.get("first_name", "there")
-            
-            movy_greeting = f"Great job on completing that exercise, {pref_name}! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
-            st.session_state.full_history.append({"role": "assistant", "content": movy_greeting})
-            st.session_state.messages.append({"role": "assistant", "content": movy_greeting})
+            # Force the LLM to reply automatically to this trigger
+            st.session_state.force_llm_reply = True
             
             st.session_state.in_session_step = "ex1_checkin_pending"
             st.rerun()
@@ -1832,12 +1826,20 @@ if not st.session_state.get("show_splash", True):
 else:
     user_input = None
 
+trigger_llm = False
+
 if user_input and user_input.strip():
     st.session_state.messages.append({"role": "user", "content": user_input})
     st.session_state.full_history.append({"role": "user", "content": user_input})
     st.markdown(f'<div class="chat-row user"><div class="bubble user">{user_input}</div></div>',
                 unsafe_allow_html=True)
+    trigger_llm = True
 
+if st.session_state.get("force_llm_reply"):
+    trigger_llm = True
+    st.session_state.force_llm_reply = False
+
+if trigger_llm:
     ph = st.empty()
     ph.markdown('<div class="chat-row movy"><div class="typing-indicator"><span></span><span></span><span></span></div></div>',
                 unsafe_allow_html=True)
