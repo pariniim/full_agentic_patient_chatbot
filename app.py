@@ -1294,6 +1294,12 @@ def render_video_overlay(video_name, data):
         .block-container hr {
             margin: 1rem 0 !important;
         }
+        .block-container [data-testid="stMetricValue"] {
+            color: #1a1d27 !important;
+        }
+        .block-container [data-testid="stMetricLabel"] {
+            color: #5A6480 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
     
