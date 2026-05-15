@@ -1348,9 +1348,21 @@ def render_video_overlay(video_name, data):
         if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
             st.session_state.video_completed = True
             st.session_state.show_video_overlay = False
+            
+            # User bubble trigger
             _trigger = "I have finished the exercise. How am I doing?"
             st.session_state.full_history.append({"role": "user", "content": _trigger})
             st.session_state.messages.append({"role": "user", "content": _trigger})
+            
+            # Movy instant greeting using preferred name
+            pref_name = st.session_state.patient_data.get("preferred_name")
+            if not pref_name:
+                pref_name = st.session_state.patient_data.get("first_name", "there")
+            
+            movy_greeting = f"Great job on completing that exercise, {pref_name}! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
+            st.session_state.full_history.append({"role": "assistant", "content": movy_greeting})
+            st.session_state.messages.append({"role": "assistant", "content": movy_greeting})
+            
             st.session_state.in_session_step = "ex1_checkin_pending"
             st.rerun()
 
