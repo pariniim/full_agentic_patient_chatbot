@@ -471,14 +471,13 @@ div.stButton {
 }
 .param-pill {
     width: 100%;
-    border: 1.2px solid #8E98B0;
-    border-radius: 24px;
+    border: none;
     padding: 0.45rem 0.6rem;
     text-align: center;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #1a1d27;
-    background: white;
+    background: transparent;
 }
 .exercise-title {
     font-size: 1.1rem;
@@ -491,11 +490,9 @@ div.stButton {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    border: 1.2px solid #6C7D9D;
-    border-radius: 50%;
-    margin: 0 0.5rem;
+    width: 44px;
+    height: 44px;
+    border: none;
     font-weight: 600;
     color: #1a1d27;
 }
@@ -503,9 +500,8 @@ div.stButton {
 .date-pill {
     display: flex;
     align-items: center;
-    border: 1.2px solid #6C7D9D;
-    border-radius: 18px;
-    padding: 0.6rem 1rem;
+    border: none;
+    padding: 0.5rem 0;
     width: 100%;
     gap: 0.75rem;
     font-weight: 500;
@@ -1161,7 +1157,7 @@ def render_appointment_summary():
     
     for i in range(1, 4):
         prog_html += f"""<div class="param-item">
-<div class="exercise-title" style="font-size:1.25rem; margin-bottom:0.4rem;">[Exercise {i}]</div>
+<div class="exercise-title" style="font-size:1.25rem; margin-bottom:0.4rem;">Exercise {i}</div>
 <div class="pill-row">
 <div class="pill-container"><div class="pill-label">Sets</div><div class="param-pill">3</div></div>
 <div class="pill-container"><div class="pill-label">Reps</div><div class="param-pill">5</div></div>
@@ -1171,7 +1167,7 @@ def render_appointment_summary():
 </div>"""
     prog_html += "</div>"
     
-    start_date = (date.today() + timedelta(days=1)).strftime("%d %B %Y")
+    start_date = (date.today() + timedelta(days=1)).strftime("%A, %d %B %Y")
     next_app = st.session_state.patient_data.get("next_appointment", "[date]")
     
     clin_html = f"""<div class="summary-param-card">
@@ -1179,15 +1175,15 @@ def render_appointment_summary():
 <hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">
 <div class="clinical-label" style="margin-top:0; color:#8E98B0; font-weight:500;">Pain Threshold</div>
 <div style="display:flex; align-items:center; font-size:1.15rem; color:#1a1d27; margin-bottom:2rem; font-weight:500;">
-Alert me if patient reports pain <div class="circle-pill" style="width:44px; height:44px; font-size:1.1rem;">8</div> <span style="color:#A5ADC1; margin-left:0.25rem;">/10</span>
+Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2rem; margin: 0 0.2rem;">8</div> <span style="color:#A5ADC1; margin-left:0.1rem;">/10</span>
 </div>
 <div class="clinical-label" style="color:#8E98B0; font-weight:500;">Program Start</div>
-<div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
+<div class="date-pill" style="padding: 0.5rem 0; font-size:1.1rem;">
 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
 {start_date}
 </div>
 <div class="clinical-label" style="margin-top:2rem; color:#8E98B0; font-weight:500;">Next Appointment</div>
-<div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
+<div class="date-pill" style="padding: 0.5rem 0; font-size:1.1rem;">
 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
 {next_app}
 </div>
