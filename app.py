@@ -658,14 +658,19 @@ div.stButton {
 st.markdown("""
 <script>
 window.triggerSt = function(label) {
-    const btns = Array.from(window.parent.document.querySelectorAll('button'));
-    const target = btns.find(b => b.innerText.trim() === label);
+    // Extensive search across the entire parent DOM
+    const allButtons = Array.from(window.parent.document.querySelectorAll('button'));
+    let target = allButtons.find(b => b.innerText.trim() === label);
+    
+    // If exact match fails, try recursive text search inside buttons
+    if (!target) {
+        target = allButtons.find(b => b.textContent.includes(label));
+    }
+    
     if (target) {
         target.click();
     } else {
-        console.log('Bridge: Finding ' + label);
-        const fallback = btns.find(b => b.innerText.includes(label));
-        if (fallback) fallback.click();
+        console.error('Movy Bridge: Logic Signal "' + label + '" not found in DOM.');
     }
 }
 </script>
@@ -1437,7 +1442,7 @@ def render_video_overlay(video_name, data):
             <div class="video-modal-header">
                 <div class="video-modal-title">{data['title']}</div>
                 <div class="video-modal-btns">
-                    <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">✕</button>
+                    <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">X</button>
                 </div>
             </div>
             <div class="video-modal-params">
@@ -1459,8 +1464,10 @@ def render_video_overlay(video_name, data):
     """
     st.markdown(full_modal_html, unsafe_allow_html=True)
 
-    # Hidden Streamlit Signal Buttons
-    st.markdown('<div style="display:none;">', unsafe_allow_html=True)
+    # Hidden Streamlit Signal Buttons - Off-screen but in DOM for JS reliability
+    st.markdown("""
+        <div style="position:fixed; top:-500px; left:-500px; opacity:0; pointer-events:none; z-index:-1;">
+    """, unsafe_allow_html=True)
     if st.button("HIDDEN_CLOSE"):
         st.session_state.show_video_overlay = False
         st.rerun()
