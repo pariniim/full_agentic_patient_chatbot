@@ -645,7 +645,7 @@ div.stButton {
 </style>
 """, unsafe_allow_html=True)
 
-/* Global JS Bridge Injection */
+# Global JS Bridge Injection
 st.markdown("""
 <script>
 window.triggerSt = function(label) {
