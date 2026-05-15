@@ -580,15 +580,15 @@ div.stButton {
 .html-btn:hover { background: #F8F9FA; border-color: #D1D5DB; }
 
 .html-start-btn {
-    background: #FFFFFF;
-    color: #1a1d27;
-    border: none;
-    border-radius: 24px;
-    padding: 0.6rem 2.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background: #FFFFFF !important;
+    color: #1a1d27 !important;
+    border: none !important;
+    border-radius: 24px !important;
+    padding: 0.6rem 2.5rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    font-size: 1rem !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 /* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
@@ -604,6 +604,17 @@ div.stButton {
 }
 .complete-pos button {
     width: 100% !important;
+}
+.video-start-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
 }
 .video-modal-header {
     display: flex;
@@ -631,6 +642,26 @@ div.stButton {
     justify-content: center;
     color: #1a1d27;
 }
+</style>
+""", unsafe_allow_html=True)
+
+/* Global JS Bridge Injection */
+st.markdown("""
+<script>
+window.triggerSt = function(label) {
+    var btns = window.parent.document.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+        if (btns[i].innerText.trim() === label) {
+            btns[i].click();
+            break;
+        }
+    }
+}
+</script>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
 .close-btn-in-header {
     margin-bottom: 0 !important;
 }
@@ -668,6 +699,7 @@ div.stButton {
     background: #FAF6F2;
     z-index: 4000;
 }
+.video-modal-params div {
     color: #8E98B0;
     font-size: 0.95rem;
 }
@@ -1387,28 +1419,8 @@ def render_video_overlay(video_name, data):
             completed = st.session_state.get("video_completed", False)
             v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
             
-            # JS Bridge to trigger Streamlit buttons
-            js_bridge = """
-            <script>
-            function triggerSt(label) {
-                var btns = window.parent.document.querySelectorAll('button');
-                for (var i = 0; i < btns.length; i++) {
-                    if (btns[i].innerText.trim() === label) {
-                        btns[i].click();
-                        break;
-                    }
-                }
-            }
-            </script>
-            """
-            
-            start_overlay_html = ""
-            if not started:
-                start_overlay_html = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>'
-            
-            # 1. Render the FULL modal shell with HTML Buttons
+            # 1. Render Structure (No large base64 here)
             st.markdown(f"""
-                {js_bridge}
                 <div class="video-overlay">
                     <div class="video-modal-content">
                         <div class="video-modal-header">
@@ -1425,17 +1437,32 @@ def render_video_overlay(video_name, data):
                             <div>Hold {data['hold']} seconds</div>
                         </div>
                         <div class="video-container-inner" style="height:480px; position:relative;">
-                            {start_overlay_html}
-                            <video {v_props} style="height:100%; object-fit:cover;">
-                                <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
-                            </video>
+                            <div id="video-slot"></div>
                         </div>
-                        <div style="height:60px; margin-top:1.5rem;"></div> <!-- space for complete btn -->
+                        <div style="height:60px; margin-top:1.5rem;"></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
             
-            # 2. Hidden Streamlit Signal Buttons
+            # 2. Render Overlay + Video content in a separate block to avoid parser overload
+            start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>' if not started else ""
+            
+            # Using a simpler markdown block for the heavy content
+            st.markdown(f"""
+                <style>
+                    #video-slot {{ display: none; }} /* hide the placeholder */
+                </style>
+                <div class="st-pos" style="top: calc(50% - 14px); left: 50%; transform: translate(-50%, -50%); width: 386px; height: 480px; z-index: 11002; pointer-events: none;">
+                    <div style="position: relative; width: 100%; height: 100%; border-radius: 24px; overflow: hidden; pointer-events: auto;">
+                        {start_overlay}
+                        <video {v_props} style="width: 100%; height: 100%; object-fit: cover;">
+                            <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # 3. Hidden Streamlit Signal Buttons
             st.markdown('<div style="display:none;">', unsafe_allow_html=True)
             if st.button("HIDDEN_CLOSE"):
                 st.session_state.show_video_overlay = False
@@ -1445,7 +1472,7 @@ def render_video_overlay(video_name, data):
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 3. Mark as complete Button (still absolute positioned for visual fit)
+            # 4. Mark as complete Button
             st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
             if st.button("Mark as complete", key="mark_complete_btn"):
                 st.session_state.video_completed = True
@@ -1466,6 +1493,7 @@ def render_video_overlay(video_name, data):
         if st.button("Close"):
             st.session_state.show_video_overlay = False
             st.rerun()
+
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
 if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
