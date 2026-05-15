@@ -239,7 +239,7 @@ section[data-testid="stSidebar"]{display:none;}
     background: transparent;
     color: #B4BACF;
     border: 1px solid #E0E2E7;
-    transform: rotate(-90deg); /* Rotate 90deg left */
+    flex-shrink: 0 !important;
 }
 
 .voice-btn:hover {
