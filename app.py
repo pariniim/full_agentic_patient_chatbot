@@ -259,7 +259,7 @@ section[data-testid="stSidebar"]{display:none;}
     background: #5A6480 !important;
     color: #FFFFFF !important;
     border: none !important;
-    transform: none !important; /* Remove rotation from mic */
+    transform: rotate(-90deg) !important; /* Points left */
 }
 
 #movy-speaker-btn {
@@ -1124,11 +1124,11 @@ components.html(f"""
 
     var vS = window.parent.__movy_voice = window.parent.__movy_voice || {{
         recognition: null,
-        ttsEnabled: storage.getItem('movy_tts_enabled') === 'true',
+        ttsEnabled: storage.getItem('movy_tts_enabled') !== 'false', // Default true
         lastRead: storage.getItem('movy_last_read') || ''
     }};
-    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var synth = window.speechSynthesis;
+    var SpeechRecognition = window.parent.SpeechRecognition || window.parent.webkitSpeechRecognition;
+    var synth             = window.parent.speechSynthesis;
 
     if (IS_SPLASH) {{
         vS.ttsEnabled = false;
@@ -1215,9 +1215,6 @@ components.html(f"""
             ctrls.className = 'voice-controls';
             ctrls.innerHTML = `
                 <div id="movy-listening-indicator" class="listening-indicator">Listening...</div>
-                <button id="movy-speaker-btn" class="voice-btn" title="Toggle Voice Output">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-                </button>
                 <button id="movy-mic-btn" class="voice-btn" title="Speak Answer">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
