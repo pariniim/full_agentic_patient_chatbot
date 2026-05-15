@@ -545,7 +545,7 @@ div.stButton {
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     background: rgba(255,255,255,0.7);
-    z-index: 11000;
+    z-index: 500;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -562,7 +562,7 @@ div.stButton {
     display: flex;
     flex-direction: column;
     position: relative;
-    z-index: 11001;
+    z-index: 501;
 }
 /* Pinning native buttons to the modal - using MAX z-index to bypass stacking contexts */
 .st-close-pin {
