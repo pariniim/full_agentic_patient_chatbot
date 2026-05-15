@@ -1407,39 +1407,39 @@ def render_video_overlay(video_name, data):
     start_overlay_shell = ""
     if not started:
         start_overlay_shell = """
-        <div class="video-start-overlay" style="display:flex; align-items:center; justify-content:center;">
-            <button class="start-btn-html" onclick="sendMovySignal('SIG_START')">Start  →</button>
-        </div>
-        """
+<div class="video-start-overlay" style="display:flex; align-items:center; justify-content:center;">
+    <button class="start-btn-html" onclick="sendMovySignal('SIG_START')">Start  →</button>
+</div>
+"""
     
     comp_class = "btn-completed" if completed else ""
     comp_text = "Completed ✓" if completed else "Mark as complete"
     
-    # Construct the full HTML in one go to ensure perfect containment
+    # Construct the full HTML in one go to ensure perfect containment, completely unindented to prevent markdown code blocks
     full_modal_html = f"""
-    <div class="video-overlay">
-        <div class="video-modal-content">
-            <button class="close-btn-html" onclick="sendMovySignal('SIG_CLOSE')">X</button>
-            <div class="video-modal-header">
-                <div class="video-modal-title">{data['title']}</div>
-            </div>
-            <div class="video-modal-params">
-                <div>Reps {data['reps']}</div>
-                <div class="param-divider"></div>
-                <div>Sets {data['sets']}</div>
-                <div class="param-divider"></div>
-                <div>Hold {data['hold']} seconds</div>
-            </div>
-            <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
-                {start_overlay_shell}
-                <video {v_props} style="width:100%; height:100%; object-fit:cover;">
-                    <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
-                </video>
-            </div>
-            <button class="complete-btn-html {comp_class}" onclick="sendMovySignal('SIG_COMPLETE')">{comp_text}</button>
+<div class="video-overlay">
+    <div class="video-modal-content">
+        <button class="close-btn-html" onclick="sendMovySignal('SIG_CLOSE')">X</button>
+        <div class="video-modal-header">
+            <div class="video-modal-title">{data['title']}</div>
         </div>
+        <div class="video-modal-params">
+            <div>Reps {data['reps']}</div>
+            <div class="param-divider"></div>
+            <div>Sets {data['sets']}</div>
+            <div class="param-divider"></div>
+            <div>Hold {data['hold']} seconds</div>
+        </div>
+        <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
+            {start_overlay_shell}
+            <video {v_props} style="width:100%; height:100%; object-fit:cover;">
+                <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
+            </video>
+        </div>
+        <button class="complete-btn-html {comp_class}" onclick="sendMovySignal('SIG_COMPLETE')">{comp_text}</button>
     </div>
-    """
+</div>
+"""
     
     # 1. Global Invisible Signal Receivers
     st.markdown('<div style="display:none;">', unsafe_allow_html=True)
