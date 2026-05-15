@@ -852,29 +852,18 @@ UI behaviour:
 Wait until the user presses the completion button.
 
 Step D: When the user marks Exercise 2 as complete:
+Congratulate the user and seamlessly begin the post-session check-in.
 Say:
-"That's your session done, [preferred_name]. Great work — you're on track."
+"That's your session done, [preferred_name]. Great work — you're on track. Let's do a quick check-in. Four questions and you're done."
+Then ask Q1 straight away.
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"session_complete"}}</MOVY_SIGNAL>
 
 ══════════════════════════════════════
-PHASE TRANSITION — SHOW SPLASH SCREEN
-══════════════════════════════════════
-Before beginning Phase 4, emit:
-<MOVY_SIGNAL>{{"action":"show_splash","phase":"post_session"}}</MOVY_SIGNAL>
-
-══════════════════════════════════════
 PHASE 4 — POST-SESSION CHECK-IN
 ══════════════════════════════════════
-Movy begins Phase 4 PROACTIVELY — do not wait for the user to speak first.
-
-Announce the check-in warmly and immediately, for example:
-"Great — quick check-in. Four questions and you're done."
-Then ask Q1 straight away.
-
-Exception: if 15+ minutes have passed since session_complete, adapt tone:
-"Welcome back! Since some time has passed, let's do a quick check-in — just four questions."
+You have just asked Q1. Now wait for the user to reply, and collect the following in order:
 
 Collect in order:
 Q1 — Adherence (all / partial / none). If none → skip Q2+Q3.
@@ -1327,56 +1316,70 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
 def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
     
-    st.markdown(f"## {data['title']}")
+    # Inject CSS to style the border container as a premium white card
+    st.markdown("""
+        <style>
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #FFFFFF !important;
+            border-radius: 20px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+            border: 1px solid rgba(0,0,0,0.04) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # Clinical Parameters
-    cols = st.columns(3)
-    cols[0].metric("Reps", data['reps'])
-    cols[1].metric("Sets", data['sets'])
-    cols[2].metric("Hold", f"{data['hold']}s")
+    with st.container(border=True):
+        st.markdown(f"<h2 style='margin-top:0;'>{data['title']}</h2>", unsafe_allow_html=True)
+        
+        # Clinical Parameters
+        cols = st.columns(3)
+        cols[0].metric("Reps", data['reps'])
+        cols[1].metric("Sets", data['sets'])
+        cols[2].metric("Hold", f"{data['hold']}s")
+        
+        st.divider()
+        
+        if not video_path.exists():
+            st.error(f"Video {video_name} not found.")
+            if st.button("Close"):
+                st.session_state.show_video_overlay = False
+                st.rerun()
+            return
     
-    st.divider()
-    
-    if not video_path.exists():
-        st.error(f"Video {video_name} not found.")
-        if st.button("Close"):
-            st.session_state.show_video_overlay = False
-            st.rerun()
-        return
-
-    with open(video_path, "rb") as f:
-        video_bytes = f.read()
-    
-    # Native Video Player
-    st.video(video_bytes, format="video/mp4", autoplay=True, loop=True, muted=True)
-    
-    # Action Bar
-    st.divider()
-    col1, col2, col3 = st.columns([1, 0.2, 1.5])
-    
-    with col1:
-        if st.button("← Back to Chat", use_container_width=True):
-            st.session_state.show_video_overlay = False
-            st.rerun()
-            
-    with col3:
-        if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
-            st.session_state.video_completed = True
-            st.session_state.show_video_overlay = False
-            
-            # User bubble trigger
-            _trigger = "I have finished the exercise."
-            st.session_state.full_history.append({"role": "user", "content": _trigger})
-            st.session_state.messages.append({"role": "user", "content": _trigger})
-            
-            # Force the LLM to reply automatically to this trigger
-            st.session_state.force_llm_reply = True
-            
-            if "Ex02" in st.session_state.get("current_video", ""):
-                st.session_state.in_session_step = "ex2_completed"
-            else:
-                st.session_state.in_session_step = "ex1_completed"
-            st.rerun()
+        with open(video_path, "rb") as f:
+            video_bytes = f.read()
+        
+        # Native Video Player
+        st.video(video_bytes, format="video/mp4", autoplay=True, loop=True, muted=True)
+        
+        # Action Bar
+        st.divider()
+        col1, col2, col3 = st.columns([1, 0.2, 1.5])
+        
+        with col1:
+            if st.button("← Back to Chat", use_container_width=True):
+                st.session_state.show_video_overlay = False
+                st.rerun()
+                
+        with col3:
+            if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
+                st.session_state.video_completed = True
+                st.session_state.show_video_overlay = False
+                
+                # User bubble trigger
+                _trigger = "I have finished the exercise."
+                st.session_state.full_history.append({"role": "user", "content": _trigger})
+                st.session_state.messages.append({"role": "user", "content": _trigger})
+                
+                # Force the LLM to reply automatically to this trigger
+                st.session_state.force_llm_reply = True
+                
+                if "Ex02" in st.session_state.get("current_video", ""):
+                    st.session_state.in_session_step = "ex2_completed"
+                else:
+                    st.session_state.in_session_step = "ex1_completed"
+                st.rerun()
 
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
