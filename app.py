@@ -443,29 +443,7 @@ div.stButton {
     height: auto;
     margin-bottom: 1rem;
 }
-.summary-row {
-    display: flex;
-    gap: 1.2rem;
-    width: 100%;
-    justify-content: center;
-}
-.summary-param-card {
-    background: #FFFFFF;
-    border-radius: 16px;
-    padding: 1.5rem;
-    flex: 1;
-    min-width: 0;
-    border: 1px solid #E0E2E7;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-}
-.summary-param-card h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1a1d27;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid #F0F2F7;
-    padding-bottom: 0.5rem;
-}
+
 .param-item {
     font-size: 0.88rem;
     color: #5A6480;
