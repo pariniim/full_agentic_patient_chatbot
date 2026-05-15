@@ -622,8 +622,8 @@ div.stButton {
 }
 /* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
-    position: absolute !important;
-    z-index: 11005;
+    position: fixed !important;
+    z-index: 13000;
 }
 .complete-pos {
     bottom: 32px;
@@ -1460,9 +1460,7 @@ def render_video_overlay(video_name, data):
         </div>
     </div>
     """
-    st.markdown(full_modal_html, unsafe_allow_html=True)
-
-    # 2. Pin Native Buttons over the HTML Shell
+    # 1. Pin Native Buttons FIRST to ensure they are on the top layer
     # Close Button
     st.markdown('<div class="st-close-pin">', unsafe_allow_html=True)
     if st.button("X", key="modal_close_native"):
@@ -1470,7 +1468,7 @@ def render_video_overlay(video_name, data):
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Start Button Overlay - Native button is pinned via fixed position
+    # Start Button Overlay
     if not started:
         st.markdown('<div class="st-start-pin">', unsafe_allow_html=True)
         if st.button("Start  →", key="modal_start_native"):
@@ -1484,6 +1482,9 @@ def render_video_overlay(video_name, data):
         st.session_state.video_completed = True
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # 2. Render Modal Shell
+    st.markdown(full_modal_html, unsafe_allow_html=True)
 
     # Logic jump after completion
     if completed:
