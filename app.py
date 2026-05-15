@@ -990,6 +990,7 @@ if st.session_state.phase == "pt_summary":
             <span class="summary-val">{flag_html}</span>
           </div>
         </div>""", unsafe_allow_html=True)
+
 # ── JS helpers: placeholder colour + scroll + video play/pause control ─────────
 _is_splash  = "true"  if st.session_state.show_splash else "false"
 _ex1_state  = st.session_state.ex_state.get(1, "idle")
@@ -1002,27 +1003,16 @@ components.html(f"""
     var doc        = window.parent.document;
     var storage    = window.parent.sessionStorage;
 
-    // 1. Inject placeholder colour for the chat input
     if (!doc.getElementById('movy-placeholder-style')) {{
         var s = doc.createElement('style');
         s.id = 'movy-placeholder-style';
-        s.textContent = [
-            '.stChatInput textarea::placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-            '.stChatInput textarea::-webkit-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-            '.stChatInput textarea:-ms-input-placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}',
-        ].join('');
+        s.textContent = '.stChatInput textarea::placeholder {{ color: #B4BACF !important; opacity: 1 !important; }}';
         doc.head.appendChild(s);
     }}
 
-    // 2. Scroll to the bottom so the latest chat bubble is always visible
-    if (!IS_SPLASH) {{
-        window.parent.scrollTo({{ top: doc.body.scrollHeight, behavior: 'smooth' }});
-    }}
+    if (!IS_SPLASH) window.parent.scrollTo({{ top: doc.body.scrollHeight, behavior: 'smooth' }});
 
-    // 3. Auto-play each exercise video when it is active (idle = playing automatically).
-    //    Position is saved in sessionStorage so it survives Streamlit re-renders.
     function controlVideo(vid, state, key) {{
-        // idle and completing both mean "should be playing"
         var shouldPlay = (state === 'idle' || state === 'completing');
         if (shouldPlay) {{
             var saved = parseFloat(storage.getItem(key) || '0');
@@ -1034,7 +1024,6 @@ components.html(f"""
             if (vid.readyState >= 1) {{ doPlay(); }}
             else {{ vid.addEventListener('loadedmetadata', doPlay, {{once: true}}); }}
         }} else {{
-            // complete or any other terminal state — pause and clear saved position
             vid.pause();
             storage.removeItem(key);
         }}
@@ -1047,126 +1036,105 @@ components.html(f"""
         }});
     }}
 
-    // 4. Voice Interaction (STT & TTS)
+    if (!window.parent.__movy_voice) {{
+        window.parent.__movy_voice = {{
+            recognition: null,
+            ttsEnabled: storage.getItem('movy_tts_enabled') === 'true',
+            lastRead: storage.getItem('movy_last_read') || ''
+        }};
+    }}
+    var vS = window.parent.__movy_voice;
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var recognition = null;
     var synth = window.speechSynthesis;
-    
-    // Ensure voice starts OFF at the beginning of onboarding
+
     if (IS_SPLASH) {{
+        vS.ttsEnabled = false;
         storage.setItem('movy_tts_enabled', 'false');
     }}
-    var ttsEnabled = storage.getItem('movy_tts_enabled') === 'true';
 
     function initVoice() {{
-        if (!SpeechRecognition) {{
-            console.warn("Movy: SpeechRecognition API not supported in this browser.");
-            return;
-        }}
-        
-        // Always recreate recognition to ensure fresh state
-        if (recognition) try {{ recognition.abort(); }} catch(e) {{}}
-        recognition = new SpeechRecognition();
-        
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+        if (!SpeechRecognition) return;
+        if (vS.recognition) try {{ vS.recognition.abort(); }} catch(e) {{}}
+        var rec = new SpeechRecognition();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.lang = 'en-US';
 
-        recognition.onstart = function() {{
-            console.log("Movy: Speech Recognition started...");
+        rec.onstart = function() {{
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.add('active');
-            var indicator = doc.getElementById('movy-listening-indicator');
-            if (indicator) {{
-                indicator.innerText = "Listening...";
-                indicator.style.display = 'block';
-            }}
+            var ind = doc.getElementById('movy-listening-indicator');
+            if (ind) ind.style.display = 'block';
         }};
 
-        recognition.onresult = function(event) {{
-            console.log("Movy: Speech Recognition result received.");
+        rec.onresult = function(event) {{
             var text = event.results[0][0].transcript;
             var textarea = doc.querySelector('.stChatInput textarea');
             if (!textarea) return;
-
-            // React-safe value injection
-            var nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
-            nativeTextareaValueSetter.call(textarea, text);
+            var ns = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
+            ns.call(textarea, text);
             textarea.dispatchEvent(new Event('input', {{ bubbles: true }}));
-            
-            // Wait a beat for React to sync, then find and click the send button
             setTimeout(function() {{
                 var btn = doc.querySelector('.stChatInput button[data-testid="stChatInputSubmitButton"]') || 
                           doc.querySelector('.stChatInput button');
-                if (btn) {{
-                    btn.click();
-                    console.log("Movy: Auto-sent voice message.");
-                }}
+                if (btn) btn.click();
             }}, 150);
         }};
 
-        recognition.onerror = function(event) {{
-            console.error("Movy: Speech Recognition Error: " + event.error);
+        rec.onerror = function() {{
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
-            var indicator = doc.getElementById('movy-listening-indicator');
-            if (indicator) {{
-                indicator.innerText = "Error: " + event.error;
-                setTimeout(function() {{ indicator.style.display = 'none'; }}, 3000);
-            }}
+            var ind = doc.getElementById('movy-listening-indicator');
+            if (ind) ind.style.display = 'none';
         }};
 
-        recognition.onend = function() {{
-            console.log("Movy: Speech Recognition ended.");
+        rec.onend = function() {{
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
-            var indicator = doc.getElementById('movy-listening-indicator');
-            if (indicator) indicator.style.display = 'none';
+            var ind = doc.getElementById('movy-listening-indicator');
+            if (ind) ind.style.display = 'none';
         }};
+        vS.recognition = rec;
     }}
 
     function speak(text) {{
-        if (!ttsEnabled || !synth) return;
+        if (!vS.ttsEnabled || !synth) return;
         try {{
             synth.cancel(); 
             var ut = new SpeechSynthesisUtterance(text);
             var voices = synth.getVoices();
-            var preferredNames = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
-            var voice = null;
-            for (var i = 0; i < preferredNames.length; i++) {{
-                voice = voices.find(v => v.name.includes(preferredNames[i]));
-                if (voice) break;
+            var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
+            var v = null;
+            for (var i = 0; i < pref.length; i++) {{
+                v = voices.find(vx => vx.name.includes(pref[i]));
+                if (v) break;
             }}
-            if (!voice) voice = voices.find(v => v.name.toLowerCase().includes('female'));
-            if (!voice) voice = voices[0];
-            if (voice) ut.voice = voice;
-            ut.pitch = 1.05;
-            ut.rate = 0.95;
+            if (!v) v = voices.find(vx => vx.name.toLowerCase().includes('female'));
+            if (!v) v = voices[0];
+            if (v) ut.voice = v;
+            ut.pitch = 1.05; ut.rate = 0.95;
             synth.speak(ut);
-        }} catch(e) {{ console.error("Movy TTS Error:", e); }}
+        }} catch(e) {{}}
     }}
 
-    // Chrome/Safari requirement: prime the synth on first user gesture
-    function primeSpeech() {{
-        if (synth) {{
-            var silent = new SpeechSynthesisUtterance("");
-            synth.speak(silent);
-            console.log("Movy: Speech primed.");
-        }}
-        doc.removeEventListener('click', primeSpeech);
+    if (!window.parent.__movy_primed) {{
+        var prime = function() {{
+            if (synth) synth.speak(new SpeechSynthesisUtterance(""));
+            window.parent.__movy_primed = true;
+            doc.removeEventListener('click', prime);
+        }};
+        doc.addEventListener('click', prime);
     }}
-    doc.addEventListener('click', primeSpeech);
 
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
         if (!container || doc.getElementById('movy-voice-ctrls')) return;
-
         var ctrls = doc.createElement('div');
         ctrls.id = 'movy-voice-ctrls';
         ctrls.className = 'voice-controls';
         ctrls.innerHTML = `
             <div id="movy-listening-indicator" class="listening-indicator">Listening...</div>
-            <button id="movy-speaker-btn" class="voice-btn ${{ttsEnabled ? 'speaker-on' : ''}}" title="Toggle Voice Output">
+            <button id="movy-speaker-btn" class="voice-btn ${{vS.ttsEnabled ? 'speaker-on' : ''}}" title="Toggle Voice Output">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             </button>
             <button id="movy-mic-btn" class="voice-btn" title="Speak Answer">
@@ -1174,55 +1142,42 @@ components.html(f"""
             </button>
         `;
         container.insertBefore(ctrls, container.firstChild);
-
         doc.getElementById('movy-mic-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
-            if (!recognition) initVoice();
-            if (!recognition) return;
-            
-            if (this.classList.contains('active')) {{
-                recognition.stop();
-            }} else {{
-                try {{ recognition.start(); }} catch (err) {{ console.warn(err); }}
-            }}
+            initVoice();
+            if (vS.recognition) try {{ vS.recognition.start(); }} catch(err) {{}}
         }};
-
         doc.getElementById('movy-speaker-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
-            ttsEnabled = !ttsEnabled;
-            storage.setItem('movy_tts_enabled', ttsEnabled);
-            this.classList.toggle('speaker-on', ttsEnabled);
-            if (ttsEnabled) speak("Voice output enabled.");
+            vS.ttsEnabled = !vS.ttsEnabled;
+            storage.setItem('movy_tts_enabled', vS.ttsEnabled);
+            this.classList.toggle('speaker-on', vS.ttsEnabled);
+            if (vS.ttsEnabled) speak("Voice output enabled.");
             else synth.cancel();
         }};
     }}
 
-
-
     function readNewMessages() {{
         var bubbles = doc.querySelectorAll('.bubble.movy');
         if (bubbles.length === 0) return;
-        var lastBubble = bubbles[bubbles.length - 1];
-        var text = lastBubble.innerText;
-        var lastRead = storage.getItem('movy_last_read');
-        if (text !== lastRead) {{
+        var text = bubbles[bubbles.length - 1].innerText;
+        if (text !== vS.lastRead) {{
+            vS.lastRead = text;
             storage.setItem('movy_last_read', text);
             speak(text);
         }}
     }}
 
-    initVoice();
     applyVideoStates();
     injectVoiceUI();
-    
-    var observer = new MutationObserver(function() {{
-        applyVideoStates();
-        injectVoiceUI();
-        readNewMessages();
-    }});
-    observer.observe(doc.body, {{childList: true, subtree: true}});
-    
-    // Periodically check for UI injection in case observer misses it
+    if (!window.parent.__movy_observer) {{
+        window.parent.__movy_observer = new MutationObserver(function() {{
+            applyVideoStates();
+            injectVoiceUI();
+            readNewMessages();
+        }});
+        window.parent.__movy_observer.observe(doc.body, {{childList: true, subtree: true}});
+    }}
     setInterval(injectVoiceUI, 1000);
 }})();
 </script>
