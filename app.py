@@ -564,12 +564,11 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Pinning native buttons to the modal - using MAX z-index to bypass stacking contexts */
-.st-close-pin {
+/* Pinning native buttons to the modal - Managed by Self-Aligning JS */
+.st-close-pin, .st-start-pin, .st-pos {
     position: fixed !important;
-    top: calc(50% - 330px);
-    left: calc(50% + 175px);
     z-index: 2147483647 !important;
+    transition: opacity 0.2s ease;
 }
 .st-close-pin button {
     border-radius: 50% !important;
@@ -656,7 +655,50 @@ div.stButton {
 </style>
 """, unsafe_allow_html=True)
 
-# Global JS Bridge Injection Removed - Using Native Streamlit Buttons
+# Global JS Bridge Injection
+st.markdown("""
+<script>
+function alignMovyPins() {
+    const doc = window.parent.document;
+    const modal = doc.querySelector('.video-modal-content');
+    if (!modal) return;
+    
+    const rect = modal.getBoundingClientRect();
+    
+    // Close Pin (Top Right)
+    const closePin = doc.querySelector('.st-close-pin');
+    if (closePin) {
+        closePin.style.top = (rect.top + 20) + 'px';
+        closePin.style.left = (rect.right - 62) + 'px';
+    }
+    
+    // Start Pin (Center of Video)
+    const startPin = doc.querySelector('.st-start-pin');
+    if (startPin) {
+        startPin.style.top = (rect.top + 340) + 'px';
+        startPin.style.left = (rect.left + (rect.width/2) - 0) + 'px';
+        startPin.style.transform = 'translate(-50%, -50%)';
+    }
+    
+    // Complete Pin (Bottom)
+    const completePin = doc.querySelector('.complete-pos');
+    if (completePin) {
+        // Find the parent st-pos
+        const parent = completePin.closest('.st-pos');
+        if (parent) {
+            parent.style.top = (rect.bottom - 70) + 'px';
+            parent.style.left = (rect.left + (rect.width/2)) + 'px';
+            parent.style.transform = 'translateX(-50%)';
+        }
+    }
+}
+
+// Continuous alignment loop
+if (!window.movyInterval) {
+    window.movyInterval = setInterval(alignMovyPins, 50);
+}
+</script>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
