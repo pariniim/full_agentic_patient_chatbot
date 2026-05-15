@@ -118,6 +118,7 @@ section[data-testid="stSidebar"]{display:none;}
     margin: 0 auto !important;
     border-radius: 16px !important;
     overflow: hidden !important;
+    border: 1px solid #4a4a4a !important;
 }
 .stVideo video, [data-testid="stVideo"] video {
     width: 100% !important;
