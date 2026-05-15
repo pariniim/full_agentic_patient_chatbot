@@ -1322,17 +1322,20 @@ def render_video_overlay(video_name, data):
         .block-container {
             background-color: #FFFFFF !important;
             border-radius: 20px !important;
-            padding: 3rem 2.5rem !important;
+            padding: 1.5rem 2.5rem 1.5rem 2.5rem !important;
             box-shadow: 0 8px 32px rgba(0,0,0,0.06) !important;
             border: 1px solid rgba(0,0,0,0.04) !important;
-            margin-top: 2rem !important;
-            margin-bottom: 2rem !important;
+            margin-top: 1rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .block-container hr {
+            margin: 1rem 0 !important;
         }
         </style>
     """, unsafe_allow_html=True)
     
     with st.container():
-        st.markdown(f"<h2 style='margin-top:0;'>{data['title']}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='margin-top:0; margin-bottom:1rem; text-align:center;'>{data['title']}</h2>", unsafe_allow_html=True)
         
         # Clinical Parameters
         cols = st.columns(3)
