@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     background: #FAF6F2 !important;
     max-width: 680px !important;
     margin: 0 auto !important;
-    padding: 12rem 1.5rem 6rem 1.5rem !important;
+    padding: 6rem 1.5rem 6rem 1.5rem !important;
     border: none !important;
     box-shadow: none !important;
 }
@@ -604,6 +604,23 @@ div.stButton {
     display: flex;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+}
+
+.splash-v-center {
+    margin-top: -3vh !important;
+    text-align: center;
+    width: 100%;
+}
+.splash-video-container {
+    margin-bottom: 0.5rem;
+}
+.splash-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #FAF6F2;
+    z-index: 4000;
+}
     color: #8E98B0;
     font-size: 0.95rem;
 }
