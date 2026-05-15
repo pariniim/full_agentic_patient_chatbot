@@ -564,27 +564,29 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Pinning native buttons to the modal - Managed by Self-Aligning JS */
-.st-close-pin, .st-start-pin, .st-pos {
+/* Pinning native buttons to the modal - Centered CSS logic */
+.st-close-pin {
     position: fixed !important;
+    top: 12vh !important;
+    left: calc(50% + 175px) !important;
     z-index: 2147483647 !important;
-    transition: opacity 0.2s ease;
 }
 .st-close-pin button {
     border-radius: 50% !important;
-    width: 42px !important;
-    height: 42px !important;
+    width: 44px !important;
+    height: 44px !important;
     padding: 0 !important;
     border: 1px solid #EAECEF !important;
     background: white !important;
     color: #000000 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    min-width: 44px !important;
 }
 .st-start-pin {
     position: fixed !important;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 52% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     z-index: 2147483647 !important;
 }
 .st-start-pin button {
@@ -597,6 +599,13 @@ div.stButton {
     font-size: 1.05rem !important;
     box-shadow: 0 8px 20px rgba(43, 92, 217, 0.3) !important;
     width: auto !important;
+}
+.st-pos {
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    left: 50% !important;
+    bottom: 8vh !important;
+    transform: translateX(-50%) !important;
 }
 .st-start-pin button:hover {
     background: #1e4bb3 !important;
@@ -655,50 +664,7 @@ div.stButton {
 </style>
 """, unsafe_allow_html=True)
 
-# Global JS Bridge Injection
-st.markdown("""
-<script>
-function alignMovyPins() {
-    const doc = window.parent.document;
-    const modal = doc.querySelector('.video-modal-content');
-    if (!modal) return;
-    
-    const rect = modal.getBoundingClientRect();
-    
-    // Close Pin (Top Right)
-    const closePin = doc.querySelector('.st-close-pin');
-    if (closePin) {
-        closePin.style.top = (rect.top + 20) + 'px';
-        closePin.style.left = (rect.right - 62) + 'px';
-    }
-    
-    // Start Pin (Center of Video)
-    const startPin = doc.querySelector('.st-start-pin');
-    if (startPin) {
-        startPin.style.top = (rect.top + 340) + 'px';
-        startPin.style.left = (rect.left + (rect.width/2) - 0) + 'px';
-        startPin.style.transform = 'translate(-50%, -50%)';
-    }
-    
-    // Complete Pin (Bottom)
-    const completePin = doc.querySelector('.complete-pos');
-    if (completePin) {
-        // Find the parent st-pos
-        const parent = completePin.closest('.st-pos');
-        if (parent) {
-            parent.style.top = (rect.bottom - 70) + 'px';
-            parent.style.left = (rect.left + (rect.width/2)) + 'px';
-            parent.style.transform = 'translateX(-50%)';
-        }
-    }
-}
-
-// Continuous alignment loop
-if (!window.movyInterval) {
-    window.movyInterval = setInterval(alignMovyPins, 50);
-}
-</script>
-""", unsafe_allow_html=True)
+# Global JS Bridge Injection Removed
 
 st.markdown("""
 <style>
@@ -1445,9 +1411,6 @@ def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
     if not video_path.exists():
         st.error(f"Video {video_name} not found.")
-        if st.button("Close"):
-            st.session_state.show_video_overlay = False
-            st.rerun()
         return
 
     with open(video_path, "rb") as f:
