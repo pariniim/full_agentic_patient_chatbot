@@ -388,26 +388,36 @@ section[data-testid="stSidebar"]{display:none;}
 /* No secondary buttons - all CTAs should be blue/white */
 
 
-.splash-fullscreen {
+.splash-bg {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     background: #FAF6F2;
+    z-index: 9000;
+}
+
+.splash-v-center {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    text-align: center;
+    padding-top: 15vh; /* Push down to center */
+    z-index: 9001;
+    position: relative;
 }
 
-.splash-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    max-width: 500px;
-    width: 90%;
-    gap: 0;
+.splash-v-center h2 {
+    color: #2B5CD9;
+    font-size: 2.6rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.2rem 0 !important;
+}
+
+.splash-v-center p {
+    color: #5A6480;
+    font-size: 1.3rem;
+    margin-bottom: 2rem !important;
 }
 
 .splash-native-btn {
@@ -1009,49 +1019,37 @@ if st.session_state.show_splash:
         except:
             media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
 
-    st.markdown(f"""
-    <div class="splash-fullscreen">
-        <div class="splash-content">
+    # Use a background overlay and standard columns for reliable button rendering
+    st.markdown('<div class="splash-bg"></div>', unsafe_allow_html=True)
+    
+    _, col, _ = st.columns([1, 4, 1])
+    with col:
+        st.markdown(f"""
+        <div class="splash-v-center">
             <div class="splash-video-container" style="margin-bottom: 0;">
                 {media_html}
             </div>
-            <h2 style="color:#2B5CD9; margin-top:0.2rem; margin-bottom:0; font-size:2.6rem; font-weight:600;">{conclude}</h2>
-            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.1rem; margin-bottom:1rem;">{introduce}</p>
-            <div id="splash-btn-placeholder"></div>
+            <h2>{conclude}</h2>
+            <p>{introduce}</p>
         </div>
-    </div>
-    <style>
-        /* Inject the button into the fullscreen view */
-        div.stButton > button[key="splash_btn"] {{
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, 140px); /* Position it relative to center */
-            z-index: 10000;
-            background: #2B5CD9 !important;
-            color: white !important;
-            padding: 0.8rem 2.5rem !important;
-            border-radius: 30px !important;
-            font-size: 1rem !important;
-        }}
-    </style>
-    """, unsafe_allow_html=True)
-
-    btn_labels = {
-        "onboarding": "Start Onboarding  →",
-        "programme_selection": "View Programme  →",
-        "in_session": "Begin Session  →",
-        "post_session": "Start Check-In  →",
-        "pt_summary": "View Summary  →"
-    }
-    lbl = btn_labels.get(target, "Continue  →")
+        """, unsafe_allow_html=True)
+        
+        btn_labels = {
+            "onboarding": "Start Onboarding  →",
+            "programme_selection": "View Programme  →",
+            "in_session": "Begin Session  →",
+            "post_session": "Start Check-In  →",
+            "pt_summary": "View Summary  →"
+        }
+        lbl = btn_labels.get(target, "Continue  →")
+        
+        # This button is now in the natural Streamlit flow, making it 100% reliable
+        if st.button(lbl, use_container_width=True, key="splash_cta"):
+            st.session_state.show_splash = False
+            st.session_state.messages = []
+            st.session_state.phase = target
+            st.rerun()
     
-    # Render the button - the CSS above will handle the centering
-    if st.button(lbl, key="splash_btn"):
-        st.session_state.show_splash = False
-        st.session_state.messages = []
-        st.session_state.phase = target
-        st.rerun()
     st.stop()
 else:
     render_header()
