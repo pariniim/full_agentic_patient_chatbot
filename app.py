@@ -561,24 +561,39 @@ div.stButton {
     box-shadow: 0 30px 60px rgba(0,0,0,0.12);
     display: flex;
     flex-direction: column;
-    position: relative; /* Anchor for absolute buttons */
+    position: relative;
     z-index: 11001;
 }
-/* Precision positioning for Streamlit buttons RELATIVE to modal */
+.html-btn {
+    background: white;
+    border: 1px solid #EAECEF;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+.html-btn:hover { background: #F8F9FA; border-color: #D1D5DB; }
+
+.html-start-btn {
+    background: #FFFFFF;
+    color: #1a1d27;
+    border: none;
+    border-radius: 24px;
+    padding: 0.6rem 2.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+/* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
     position: absolute !important;
     z-index: 11005;
-}
-.close-pos {
-    top: 32px;
-    right: 32px;
-    margin-bottom: 0 !important;
-}
-.start-pos {
-    top: 380px;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 0 !important;
 }
 .complete-pos {
     bottom: 32px;
@@ -1372,15 +1387,30 @@ def render_video_overlay(video_name, data):
             completed = st.session_state.get("video_completed", False)
             v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
             
-            # 1. Render the FULL modal shell (Static HTML)
+            # JS Bridge to trigger Streamlit buttons
+            js_bridge = """
+            <script>
+            function triggerSt(label) {
+                var btns = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < btns.length; i++) {
+                    if (btns[i].innerText.trim() === label) {
+                        btns[i].click();
+                        break;
+                    }
+                }
+            }
+            </script>
+            """
+            
+            # 1. Render the FULL modal shell with HTML Buttons
             st.markdown(f"""
+                {js_bridge}
                 <div class="video-overlay">
                     <div class="video-modal-content">
                         <div class="video-modal-header">
                             <div class="video-modal-title">{data['title']}</div>
                             <div class="video-modal-btns">
-                                <div class="circle-btn" style="border:none;"></div>
-                                <div class="circle-btn"></div>
+                                <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">✕</button>
                             </div>
                         </div>
                         <div class="video-modal-params">
@@ -1390,8 +1420,8 @@ def render_video_overlay(video_name, data):
                             <div class="param-divider"></div>
                             <div>Hold {data['hold']} seconds</div>
                         </div>
-                        <div class="video-container-inner" style="height:480px;">
-                            {"<div class='video-start-overlay'></div>" if not started else ""}
+                        <div class="video-container-inner" style="height:480px; position:relative;">
+                            {f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\\'HIDDEN_START\\')">Start</button></div>' if not started else ""}
                             <video {v_props} style="height:100%; object-fit:cover;">
                                 <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                             </video>
@@ -1401,26 +1431,17 @@ def render_video_overlay(video_name, data):
                 </div>
             """, unsafe_allow_html=True)
             
-            # 2. Position the functional Streamlit buttons over the shell
-            # Note: Using absolute positioning relative to the content container
-            # This requires the buttons to be rendered INSIDE the modal flow in Streamlit terms
-            
-            # Close Button
-            st.markdown('<div class="st-pos close-pos close-btn-in-header">', unsafe_allow_html=True)
-            if st.button("✕", key="close_vid_overlay"):
+            # 2. Hidden Streamlit Signal Buttons
+            st.markdown('<div style="display:none;">', unsafe_allow_html=True)
+            if st.button("HIDDEN_CLOSE"):
                 st.session_state.show_video_overlay = False
+                st.rerun()
+            if st.button("HIDDEN_START"):
+                st.session_state.video_started = True
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Start Button
-            if not started:
-                st.markdown('<div class="st-pos start-pos start-cta-container">', unsafe_allow_html=True)
-                if st.button("Start", key="start_video_cta"):
-                    st.session_state.video_started = True
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # Mark as complete Button
+            # 3. Mark as complete Button (still absolute positioned for visual fit)
             st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
             if st.button("Mark as complete", key="mark_complete_btn"):
                 st.session_state.video_completed = True
