@@ -555,11 +555,40 @@ div.stButton {
     background: white;
     width: 90%;
     max-width: 450px;
+    height: auto;
     border-radius: 32px;
-    padding: 1.5rem;
+    padding: 2rem;
     box-shadow: 0 30px 60px rgba(0,0,0,0.12);
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 11001;
+}
+/* Precision positioning for Streamlit buttons over the HTML shell */
+.st-pos {
+    position: fixed;
+    z-index: 11005;
+}
+.close-pos {
+    top: calc(50% - 228px);
+    left: calc(50% + 158px);
+    margin-bottom: 0 !important;
+}
+.start-pos {
+    top: calc(50% + 75px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin-bottom: 0 !important;
+}
+.complete-pos {
+    top: calc(50% + 280px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 386px;
+    margin-bottom: 0 !important;
+}
+.complete-pos button {
+    width: 100% !important;
 }
 .video-modal-header {
     display: flex;
@@ -1339,23 +1368,19 @@ def render_video_overlay(video_name, data):
         with open(video_path, "rb") as f:
             v_b64 = base64.b64encode(f.read()).decode()
             
-            # Use columns to place the button inside the header spot
+            started = st.session_state.get("video_started", False)
+            completed = st.session_state.get("video_completed", False)
+            v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
+            
+            # 1. Render the FULL modal shell (Static HTML)
             st.markdown(f"""
                 <div class="video-overlay">
                     <div class="video-modal-content">
                         <div class="video-modal-header">
                             <div class="video-modal-title">{data['title']}</div>
                             <div class="video-modal-btns">
-            """, unsafe_allow_html=True)
-            
-            # The actual Close button in the circle spot
-            st.markdown('<div class="close-btn-in-header">', unsafe_allow_html=True)
-            if st.button("✕", key="close_vid_overlay"):
-                st.session_state.show_video_overlay = False
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown(f"""
+                                <div class="circle-btn" style="border:none;"></div>
+                                <div class="circle-btn"></div>
                             </div>
                         </div>
                         <div class="video-modal-params">
@@ -1365,47 +1390,54 @@ def render_video_overlay(video_name, data):
                             <div class="param-divider"></div>
                             <div>Hold {data['hold']} seconds</div>
                         </div>
-                        <div class="video-container-inner">
-            """, unsafe_allow_html=True)
-            
-            # Start Overlay Logic
-            if not st.session_state.get("video_started", False):
-                st.markdown('<div class="video-start-overlay"><div class="start-cta-container">', unsafe_allow_html=True)
-                if st.button("Start", key="start_video_cta"):
-                    st.session_state.video_started = True
-                    st.rerun()
-                st.markdown('</div></div>', unsafe_allow_html=True)
-                # Still show video but paused/muted/hidden behind overlay
-                v_props = "muted playsinline"
-            else:
-                v_props = "autoplay loop muted playsinline controls"
-
-            st.markdown(f"""
-                            <video {v_props}>
+                        <div class="video-container-inner" style="height:480px;">
+                            {"<div class='video-start-overlay'></div>" if not started else ""}
+                            <video {v_props} style="height:100%; object-fit:cover;">
                                 <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                             </video>
                         </div>
+                        <div style="height:60px; margin-top:1.5rem;"></div> <!-- space for complete btn -->
+                    </div>
+                </div>
             """, unsafe_allow_html=True)
             
-            # Mark as complete button
-            st.markdown(f'<div class="mark-complete-container {"btn-completed" if st.session_state.get("video_completed") else ""}">', unsafe_allow_html=True)
+            # 2. Position the functional Streamlit buttons over the shell
+            # Close Button
+            st.markdown('<div class="st-pos close-pos close-btn-in-header">', unsafe_allow_html=True)
+            if st.button("✕", key="close_vid_overlay"):
+                st.session_state.show_video_overlay = False
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Start Button
+            if not started:
+                st.markdown('<div class="st-pos start-pos start-cta-container">', unsafe_allow_html=True)
+                if st.button("Start", key="start_video_cta"):
+                    st.session_state.video_started = True
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # Mark as complete Button
+            st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
             if st.button("Mark as complete", key="mark_complete_btn"):
                 st.session_state.video_completed = True
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Logic to close and trigger check-in
-            if st.session_state.get("video_completed"):
-                time.sleep(0.5) # brief pause to show green state
+            # Logic jump after completion
+            if completed:
+                time.sleep(0.5)
                 st.session_state.show_video_overlay = False
-                # Trigger Movy check-in
                 _trigger = "I have finished the exercise. How am I doing?"
                 st.session_state.full_history.append({"role": "user", "content": _trigger})
                 st.session_state.messages.append({"role": "user", "content": _trigger})
                 st.session_state.in_session_step = "ex1_checkin_pending"
                 st.rerun()
-
-            st.markdown('</div></div>', unsafe_allow_html=True)
+    else:
+        st.error(f"Video {video_name} not found.")
+        if st.button("Close"):
+            st.session_state.show_video_overlay = False
+            st.rerun()
     else:
         st.error(f"Video {video_name} not found.")
         if st.button("Close"):
