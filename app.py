@@ -564,90 +564,8 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Modal Specific Classes */
-.close-btn-html {
-    position: absolute; top: 20px; right: 20px;
-    border-radius: 50%; width: 42px; height: 42px;
-    border: 1px solid #EAECEF; background: white; color: black;
-    font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 100;
-}
-.start-btn-html {
-    background: #2B5CD9; color: white; border: none; border-radius: 32px;
-    padding: 1rem 3.5rem; font-weight: 600; font-size: 1.1rem; cursor: pointer;
-    box-shadow: 0 10px 25px rgba(43,92,217,0.4);
-}
-.start-btn-html:hover { background: #1e4bb3; }
-.complete-btn-html {
-    background: #FFFFFF; color: #1a1d27; border: 1px solid #EAECEF; border-radius: 24px;
-    padding: 0.8rem 2.5rem; font-weight: 600; cursor: pointer;
-    align-self: center; margin-top: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.complete-btn-html.btn-completed {
-    background: #4CAF50; color: white; border-color: #4CAF50;
-}
-.video-start-overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(4px);
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 24px;
-}
-.video-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-.video-modal-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #1a1d27;
-}
-.video-modal-btns {
-    display: flex;
-    gap: 0.75rem;
-}
-.circle-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    border: 1px solid #E0E2E7;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #1a1d27;
 }
 </style>
-""", unsafe_allow_html=True)
-
-# Global JS Bridge Injection
-st.markdown("""
-<script>
-window.sendMovySignal = function(signalName) {
-    console.log("Attempting to send signal: " + signalName);
-    
-    const clickButtonInContext = (doc) => {
-        const buttons = Array.from(doc.querySelectorAll('button'));
-        const target = buttons.find(b => b.textContent.includes(signalName));
-        if (target) {
-            target.click();
-            return true;
-        }
-        return false;
-    };
-
-    if (clickButtonInContext(document)) return;
-    if (window.parent && window.parent.document && clickButtonInContext(window.parent.document)) return;
-    
-    console.error("Failed to find signal button: " + signalName);
-}
-</script>
 """, unsafe_allow_html=True)
 
 st.markdown("""
@@ -1393,83 +1311,47 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
 
 def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
+    
+    st.markdown(f"## {data['title']}")
+    
+    # Clinical Parameters
+    cols = st.columns(3)
+    cols[0].metric("Reps", data['reps'])
+    cols[1].metric("Sets", data['sets'])
+    cols[2].metric("Hold", f"{data['hold']}s")
+    
+    st.divider()
+    
     if not video_path.exists():
-        st.error(f"Video {video_name} not found.")
-        return
-
-    with open(video_path, "rb") as f:
-        v_b64 = base64.b64encode(f.read()).decode()
-    
-    started = st.session_state.get("video_started", False)
-    completed = st.session_state.get("video_completed", False)
-    v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
-    
-    start_overlay_shell = ""
-    if not started:
-        start_overlay_shell = """
-<div class="video-start-overlay" style="display:flex; align-items:center; justify-content:center;">
-    <button class="start-btn-html" onclick="sendMovySignal('SIG_START')">Start  →</button>
-</div>
-"""
-    
-    comp_class = "btn-completed" if completed else ""
-    comp_text = "Completed ✓" if completed else "Mark as complete"
-    
-    # Construct the full HTML in one go to ensure perfect containment, completely unindented to prevent markdown code blocks
-    full_modal_html = f"""
-<div class="video-overlay">
-    <div class="video-modal-content">
-        <button class="close-btn-html" onclick="sendMovySignal('SIG_CLOSE')">X</button>
-        <div class="video-modal-header">
-            <div class="video-modal-title">{data['title']}</div>
-        </div>
-        <div class="video-modal-params">
-            <div>Reps {data['reps']}</div>
-            <div class="param-divider"></div>
-            <div>Sets {data['sets']}</div>
-            <div class="param-divider"></div>
-            <div>Hold {data['hold']} seconds</div>
-        </div>
-        <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
-            {start_overlay_shell}
-            <video {v_props} style="width:100%; height:100%; object-fit:cover;">
-                <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
-            </video>
-        </div>
-        <button class="complete-btn-html {comp_class}" onclick="sendMovySignal('SIG_COMPLETE')">{comp_text}</button>
-    </div>
-</div>
-"""
-    
-    # 1. Global Invisible Signal Receivers
-    st.markdown('<div style="display:none;">', unsafe_allow_html=True)
-    if st.button("SIG_CLOSE"):
-        st.session_state.show_video_overlay = False
-        st.rerun()
-    if st.button("SIG_START"):
-        st.session_state.video_started = True
-        st.rerun()
-    if st.button("SIG_COMPLETE"):
-        st.session_state.video_completed = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # 2. Render Modal Shell
-    st.markdown(full_modal_html, unsafe_allow_html=True)
-
-    # Logic jump after completion
-    if completed:
-        time.sleep(0.5)
-        st.session_state.show_video_overlay = False
-        _trigger = "I have finished the exercise. How am I doing?"
-        st.session_state.full_history.append({"role": "user", "content": _trigger})
-        st.session_state.messages.append({"role": "user", "content": _trigger})
-        st.session_state.in_session_step = "ex1_checkin_pending"
-        st.rerun()
-    else:
         st.error(f"Video {video_name} not found.")
         if st.button("Close"):
             st.session_state.show_video_overlay = False
+            st.rerun()
+        return
+
+    with open(video_path, "rb") as f:
+        video_bytes = f.read()
+    
+    # Native Video Player
+    st.video(video_bytes, format="video/mp4", autoplay=True, loop=True, muted=True)
+    
+    # Action Bar
+    st.divider()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        if st.button("← Back to Chat", use_container_width=True):
+            st.session_state.show_video_overlay = False
+            st.rerun()
+            
+    with col3:
+        if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
+            st.session_state.video_completed = True
+            st.session_state.show_video_overlay = False
+            _trigger = "I have finished the exercise. How am I doing?"
+            st.session_state.full_history.append({"role": "user", "content": _trigger})
+            st.session_state.messages.append({"role": "user", "content": _trigger})
+            st.session_state.in_session_step = "ex1_checkin_pending"
             st.rerun()
 
 
