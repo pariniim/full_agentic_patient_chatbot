@@ -580,15 +580,24 @@ div.stButton {
 .html-btn:hover { background: #F8F9FA; border-color: #D1D5DB; }
 
 .html-start-btn {
-    background: #FFFFFF !important;
-    color: #1a1d27 !important;
+    background: #2B5CD9 !important;
+    color: #FFFFFF !important;
     border: none !important;
     border-radius: 24px !important;
-    padding: 0.6rem 2.5rem !important;
+    padding: 0.8rem 2.8rem !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    font-size: 1rem !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    font-size: 1.05rem !important;
+    box-shadow: 0 8px 20px rgba(43, 92, 217, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+.html-start-btn:hover {
+    background: #1e4bb3 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 24px rgba(43, 92, 217, 0.4) !important;
+}
+.html-start-btn:active {
+    transform: translateY(0) !important;
 }
 /* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
@@ -649,12 +658,14 @@ div.stButton {
 st.markdown("""
 <script>
 window.triggerSt = function(label) {
-    var btns = window.parent.document.querySelectorAll('button');
-    for (var i = 0; i < btns.length; i++) {
-        if (btns[i].innerText.trim() === label) {
-            btns[i].click();
-            break;
-        }
+    const btns = Array.from(window.parent.document.querySelectorAll('button'));
+    const target = btns.find(b => b.innerText.trim() === label);
+    if (target) {
+        target.click();
+    } else {
+        console.log('Bridge: Finding ' + label);
+        const fallback = btns.find(b => b.innerText.includes(label));
+        if (fallback) fallback.click();
     }
 }
 </script>
@@ -1417,7 +1428,7 @@ def render_video_overlay(video_name, data):
     completed = st.session_state.get("video_completed", False)
     v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
     
-    start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>' if not started else ""
+    start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start  →</button></div>' if not started else ""
     
     # Construct the full HTML in one go to ensure perfect containment
     full_modal_html = f"""
