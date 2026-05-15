@@ -582,12 +582,12 @@ div.stButton {
 .html-start-btn:active {
     transform: translateY(0) !important;
 }
-/* Pinning native buttons to the modal */
+/* Pinning native buttons to the modal - using FIXED to bypass Streamlit container isolation */
 .st-close-pin {
-    position: absolute !important;
+    position: fixed !important;
     top: calc(50% - 330px);
     left: calc(50% + 175px);
-    z-index: 12000;
+    z-index: 13000;
 }
 .st-close-pin button {
     border-radius: 50% !important;
@@ -600,11 +600,11 @@ div.stButton {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
 }
 .st-start-pin {
-    position: absolute !important;
+    position: fixed !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 12000;
+    z-index: 13000;
 }
 .st-start-pin button {
     background: #2B5CD9 !important;
@@ -1434,7 +1434,7 @@ def render_video_overlay(video_name, data):
     completed = st.session_state.get("video_completed", False)
     v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
     
-    start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start  →</button></div>' if not started else ""
+    start_overlay_shell = '<div class="video-start-overlay"></div>' if not started else ""
     
     # Construct the full HTML in one go to ensure perfect containment
     full_modal_html = f"""
@@ -1451,6 +1451,7 @@ def render_video_overlay(video_name, data):
                 <div>Hold {data['hold']} seconds</div>
             </div>
             <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
+                {start_overlay_shell}
                 <video {v_props} style="width:100%; height:100%; object-fit:cover;">
                     <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
                 </video>
@@ -1469,9 +1470,8 @@ def render_video_overlay(video_name, data):
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Start Button Overlay
+    # Start Button Overlay - Native button is pinned via fixed position
     if not started:
-        st.markdown('<div class="video-start-overlay"></div>', unsafe_allow_html=True)
         st.markdown('<div class="st-start-pin">', unsafe_allow_html=True)
         if st.button("Start  →", key="modal_start_native"):
             st.session_state.video_started = True
