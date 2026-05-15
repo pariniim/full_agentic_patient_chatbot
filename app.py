@@ -273,10 +273,19 @@ section[data-testid="stSidebar"]{display:none;}
     border-color: #2B5CD9;
 }
 
-@keyframes pulse-ring {
-  0% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0.4); }
-  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(43, 92, 217, 0); }
-  100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0); }
+.splash-video-container {
+    width: 280px;
+    height: 280px;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.splash-video {
+    width: 280px;
+    height: auto;
+    transform: rotate(90deg); /* Rotate 90deg right */
 }
 
 /* Bubble Speaker Button */
@@ -923,39 +932,59 @@ def render_video_widget(n: int):
 
 # ── Splash screen ────────────────────────────────────────────────────────────
 if st.session_state.show_splash:
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    _, col, _ = st.columns([1, 3, 1])
-    with col:
-        _svg_b64 = load_splash_svg()
-        if _svg_b64:
-            st.markdown(
-                f'<img src="data:image/svg+xml;base64,{_svg_b64}" '
-                f'style="width:min(33vw,480px);max-width:100%;display:block;margin:0 auto 1rem auto;" '
-                f'alt="Movy logo" />',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.image("assets/images/movy_logo1.png", width=320)
-        st.write("")
-        _, btn_col, _ = st.columns([1, 2, 1])
-        with btn_col:
-            target = st.session_state.get("splash_target_phase", "onboarding")
-            btn_labels = {
-                "onboarding": "Start Onboarding  \u2192",
-                "programme_selection": "View Programme  \u2192",
-                "in_session": "Begin Session  \u2192",
-                "post_session": "Start Check-In  \u2192",
-                "pt_summary": "View Summary  \u2192"
-            }
-            lbl = btn_labels.get(target, "Continue  \u2192")
-            if st.button(lbl, use_container_width=True):
-                st.session_state.show_splash = False
-                st.session_state.phase = target
-                st.rerun()
+    target = st.session_state.get("splash_target_phase", "onboarding")
+    
+    # Concluding / Introducing messages
+    messages = {
+        "onboarding": ("Welcome!", "Let's get to know you better."),
+        "programme_selection": ("Thanks for telling me a bit about you.", 
+                               f"Your appointment is confirmed for {st.session_state.patient_data.get('next_appointment', '[date]')}"),
+        "in_session": ("Ready to start?", "Let's begin your physiotherapy session."),
+        "post_session": ("Session complete!", "Time for a quick check-in on how you feel."),
+        "pt_summary": ("All done!", "Here is the clinical summary for your physiotherapist.")
+    }
+    conclude, introduce = messages.get(target, ("Moving forward...", "Let's continue."))
+    
+    # Specialized video for onboarding conclusion
+    video_path = "assets/videos/parlata.mov" if target == "programme_selection" else "assets/videos/Idle.mov"
+    
+    import base64
+    video_html = ""
+    try:
+        with open(video_path, "rb") as f:
+            v_b64 = base64.b64encode(f.read()).decode()
+            video_html = f'<video class="splash-video" autoplay loop muted playsinline><source src="data:video/quicktime;base64,{v_b64}" type="video/quicktime"></video>'
+    except:
+        video_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
+
+    st.markdown(f"""
+    <div class="splash-container">
+        <div class="splash-video-container">
+            {video_html}
+        </div>
+        <h2 style="color:#2B5CD9; margin-bottom:0.5rem; text-align:center;">{conclude}</h2>
+        <p style="color:#5A6480; font-size:1.1rem; margin-bottom:2rem; text-align:center;">{introduce}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    btn_labels = {
+        "onboarding": "Start Onboarding  →",
+        "programme_selection": "View Programme  →",
+        "in_session": "Begin Session  →",
+        "post_session": "Start Check-In  →",
+        "pt_summary": "View Summary  →"
+    }
+    lbl = btn_labels.get(target, "Continue  →")
+    _, btn_col, _ = st.columns([1, 2, 1])
+    with btn_col:
+        if st.button(lbl, use_container_width=True):
+            st.session_state.show_splash = False
+            # RESET CHAT HISTORY FOR NEW SECTION
+            st.session_state.messages = []
+            st.session_state.phase = target
+            st.rerun()
+    st.stop()
+    st.stop()
 else:
     render_header()
     # \u2500\u2500 Render chat history \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1174,6 +1203,17 @@ components.html(f"""
         vS.recognition = rec;
     }};
 
+    // GESTURE PROXY: Bypasses iframe restrictions for sound on Windows/Chrome
+    if (!window.parent.__movy_gesture_bound) {{
+        window.parent.document.addEventListener('click', function(e) {{
+            if (window.parent.__movy_pending_text) {{
+                window.parent.__movy_speak(window.parent.__movy_pending_text, true);
+                window.parent.__movy_pending_text = null;
+            }}
+        }}, true);
+        window.parent.__movy_gesture_bound = true;
+    }}
+
     window.parent.__movy_speak = function(text, force) {{
         if ((!vS.ttsEnabled && !force) || !synth) return;
         
@@ -1208,7 +1248,8 @@ components.html(f"""
         var bubble = btn.closest('.bubble.movy');
         var bubbleText = bubble ? bubble.querySelector('.bubble-text') : null;
         if (bubbleText) {{
-            window.parent.__movy_speak(bubbleText.innerText, true);
+            // Set pending text so the gesture proxy picks it up on this same click
+            window.parent.__movy_pending_text = bubbleText.innerText;
         }}
     }};
 
