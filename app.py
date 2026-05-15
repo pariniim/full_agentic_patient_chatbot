@@ -726,6 +726,9 @@ def process_signal(sig: dict):
         # Save the appointment date the LLM computed
         if sig.get("next_appointment"):
             st.session_state.patient_data["next_appointment"] = sig["next_appointment"]
+        # TRIGGER SPLASH IMMEDIATELY
+        st.session_state.show_splash = True
+        st.session_state.splash_target_phase = "programme_selection"
         st.session_state.phase = "programme_selection"
     elif a == "exercises_selected":
         st.session_state.patient_data["exercise_1"] = sig.get("exercise_1", "Exercise 1")
@@ -1015,12 +1018,13 @@ if st.session_state.show_splash:
                 png_b64 = base64.b64encode(p_png.read_bytes()).decode()
                 media_html = f'<img src="data:image/png;base64,{png_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
     else:
-        video_path = "assets/videos/parlata.mov" if target == "programme_selection" else "assets/videos/Idle.mov"
+        video_path = "assets/video/Parlata.mp4" if target == "programme_selection" else "assets/video/Ilde.mp4"
         import base64
         try:
             with open(video_path, "rb") as f:
                 v_b64 = base64.b64encode(f.read()).decode()
-                media_html = f'<video class="splash-video" autoplay loop muted playsinline><source src="data:video/quicktime;base64,{v_b64}" type="video/quicktime"></video>'
+                # Ensure rotation and scaling for the mp4 assets
+                media_html = f'<video class="splash-video" autoplay loop muted playsinline style="transform: rotate(90deg); width:280px; height:auto;"><source src="data:video/mp4;base64,{v_b64}" type="video/mp4"></video>'
         except:
             media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
 
