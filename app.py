@@ -24,7 +24,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
     background: #FAF6F2 !important;
     max-width: 680px !important;
     margin: 0 auto !important;
-    padding: 9rem 1.5rem 6rem 1.5rem !important;
+    padding: 7rem 1.5rem 6rem 1.5rem !important;
     border: none !important;
     box-shadow: none !important;
 }
@@ -52,10 +52,13 @@ section[data-testid="stSidebar"]{display:none;}
     left: 0;
     width: 100%;
     background: #FAF6F2;
-    padding: 10px 20px 0.75rem 20px;
+    padding: 0.75rem 0;
     border-bottom: 1px solid rgba(0,0,0,0.06);
     box-sizing: border-box;
     z-index: 8000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Phase progress */
@@ -607,7 +610,7 @@ div.stButton {
 }
 
 .splash-v-center {
-    margin-top: -6vh !important;
+    margin-top: -1vh !important;
     text-align: center;
     width: 100%;
 }
@@ -1093,21 +1096,21 @@ PHASES = ["onboarding", "programme_selection", "in_session", "post_checkin", "pt
 PHASE_LABELS = ["Onboarding", "Programme", "Session", "Check-In", "Summary"]
 
 def render_header():
-    cur = PHASES.index(st.session_state.phase) if st.session_state.phase in PHASES else 0
-    dots_html = ""
-    for i, label in enumerate(PHASE_LABELS):
-        cls = "active" if i == cur else ("done" if i < cur else "")
-        dots_html += f'<div class="phase-step"><div class="phase-dot {cls}"></div><div class="phase-label">{label}</div></div>'
-        if i < len(PHASE_LABELS) - 1:
-            line_cls = "done" if i < cur else ""
-            dots_html += f'<div class="phase-line {line_cls}" style="margin-bottom:1rem"></div>'
+    svg_b64 = load_splash_svg()
+    media_html = ""
+    if svg_b64:
+        media_html = f'<img src="data:image/svg+xml;base64,{svg_b64}" style="width:130px; height:auto; display:block;" alt="Movy Logo" />'
+    else:
+        p_png = Path("assets/images/movy_logo1.png")
+        if p_png.exists():
+            png_b64 = base64.b64encode(p_png.read_bytes()).decode()
+            media_html = f'<img src="data:image/png;base64,{png_b64}" style="width:130px; height:auto; display:block;" alt="Movy Logo" />'
+    
     st.markdown(f"""
     <div class="sticky-header">
-      <div class="movy-header">
-        <div class="logo">Movy</div>
-        <div class="tagline">Your physiotherapy companion</div>
+      <div class="movy-header" style="padding:0; margin:0;">
+        {media_html}
       </div>
-      <div class="phase-bar">{dots_html}</div>
     </div>
     """, unsafe_allow_html=True)
 
