@@ -1108,7 +1108,7 @@ if "current_video" not in st.session_state:
     st.session_state.current_video = None
 
 # ── Proactive opening ─────────────────────────────────────────────────────────
-if not st.session_state.messages and not st.session_state.show_splash:
+if not st.session_state.messages and not st.session_state.show_splash and st.session_state.phase not in ["appointment_summary", "pt_summary", "programme_selection"]:
     _h = [*st.session_state.full_history,
           {"role": "user", "content": "Please begin the conversation now."}]
     _reply = call_llm(_h)
