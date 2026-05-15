@@ -707,7 +707,7 @@ def process_signal(sig: dict):
 # ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_logo_b64() -> str | None:
-    p = Path("assets/images/LogoCircle1.png")
+    p = Path("assets/images/movy_logo1.png")
     if p.exists():
         return base64.b64encode(p.read_bytes()).decode()
     return None
