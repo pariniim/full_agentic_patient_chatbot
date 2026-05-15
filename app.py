@@ -254,6 +254,17 @@ section[data-testid="stSidebar"]{display:none;}
     animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
+#movy-mic-btn {
+    background: #5A6480 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    transform: none !important; /* Remove rotation from mic */
+}
+
+#movy-speaker-btn {
+    transform: none !important; /* Remove rotation from speaker */
+}
+
 .voice-btn.speaker-on {
     color: #2B5CD9;
     background: #EBF0FF;
@@ -264,6 +275,39 @@ section[data-testid="stSidebar"]{display:none;}
   0% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0.4); }
   70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(43, 92, 217, 0); }
   100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(43, 92, 217, 0); }
+}
+
+/* Bubble Speaker Button */
+.bubble.movy {
+    position: relative;
+    padding-right: 2.2rem !important; /* Space for speaker icon */
+}
+
+.bubble-speaker-btn {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.bubble-speaker-btn:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.bubble-speaker-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .listening-indicator {
@@ -373,8 +417,8 @@ Never give medical diagnoses. Stay within physiotherapy-appropriate guidance.
 PHASE 1 — ONBOARDING
 ══════════════════════════════════════
 Collect: preferred name, injury description, injury timeline, work pattern,
-activity level, preferred days, preferred time, days unavailable, goal anchor
-(verbatim — never paraphrase), notification preference.
+activity level, preferred days, preferred time, days unavailable,
+the patient’s personal recovery goal (ask in natural language, never say “goal anchor”).
 
 Ask ONE question at a time. Acknowledge each answer.
 
@@ -401,6 +445,12 @@ The UI will show a 'Start Session' button. Movy should encourage the user to tap
 but must wait for the user to press the button before moving to Programme Selection.
 
 ══════════════════════════════════════
+PHASE TRANSITION — SHOW SPLASH SCREEN
+══════════════════════════════════════
+Before beginning Phase 2, emit:
+<MOVY_SIGNAL>{{"action":"show_splash","phase":"programme_selection"}}</MOVY_SIGNAL>
+
+══════════════════════════════════════
 PHASE 2 — PROGRAMME SELECTION
 ══════════════════════════════════════
 Two exercise videos have been selected for this session.
@@ -425,6 +475,12 @@ Then emit:
 <MOVY_SIGNAL>{{"action":"exercises_selected","exercise_1":"Exercise 1","exercise_2":"Exercise 2"}}</MOVY_SIGNAL>
 
 ══════════════════════════════════════
+PHASE TRANSITION — SHOW SPLASH SCREEN
+══════════════════════════════════════
+Before beginning Phase 3, emit:
+<MOVY_SIGNAL>{{"action":"show_splash","phase":"in_session"}}</MOVY_SIGNAL>
+
+══════════════════════════════════════
 PHASE 3 — IN-SESSION
 ══════════════════════════════════════
 Movy is PROACTIVE. Once the session starts, immediately introduce Exercise 1.
@@ -438,6 +494,7 @@ Then emit:
 
 UI behaviour:
 - Play “Exercise 1” video.
+- Automatically start ambient music (assets/audio/ambient.mp3).
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
@@ -491,6 +548,7 @@ Then emit:
 
 UI behaviour:
 - Play “Exercise 2” video.
+- Automatically start ambient music (assets/audio/ambient.mp3).
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
@@ -501,6 +559,11 @@ Say:
 Then emit:
 <MOVY_SIGNAL>{{"action":"session_complete"}}</MOVY_SIGNAL>
 
+══════════════════════════════════════
+PHASE TRANSITION — SHOW SPLASH SCREEN
+══════════════════════════════════════
+Before beginning Phase 4, emit:
+<MOVY_SIGNAL>{{"action":"show_splash","phase":"post_session"}}</MOVY_SIGNAL>
 
 ══════════════════════════════════════
 PHASE 4 — POST-SESSION CHECK-IN
@@ -537,6 +600,12 @@ After all check-in data is collected, generate the summary and emit:
 Replace all values with actual collected data. flags is a list of clinical concerns.
 
 ══════════════════════════════════════
+PHASE TRANSITION — SHOW SPLASH SCREEN
+══════════════════════════════════════
+Before beginning Phase 5, emit:
+<MOVY_SIGNAL>{{"action":"show_splash","phase":"pt_summary"}}</MOVY_SIGNAL>
+
+══════════════════════════════════════
 PHASE 5 — PT SUMMARY
 ══════════════════════════════════════
 Immediately after emitting generate_summary, write a clinical snapshot paragraph
@@ -547,6 +616,9 @@ pain flags, adherence, difficulty, confidence, overall experience,
 
 Then say warmly to the patient:
 "All done. Your physiotherapist will have a full summary ready for your next appointment. Well done today, [preferred_name]."
+
+Then say:
+"Now you have just completed the whole Movy experience. You can return to the onboarding whenever you're ready."
 
 ══════════════════════════════════════
 BEHAVIOUR RULES
@@ -559,6 +631,7 @@ BEHAVIOUR RULES
 - One <MOVY_SIGNAL> per response, only at the exact moments described above.
 - Never emit a signal at any other moment.
 """
+
 
 # ── Client ────────────────────────────────────────────────────────────────────
 client = OpenAI(api_key=st.secrets["OPENROUTER_API_KEY"],
@@ -615,6 +688,9 @@ def process_signal(sig: dict):
     elif a == "generate_summary":
         st.session_state.phase = "pt_summary"
         st.session_state.patient_data["summary"] = sig.get("summary", {})
+    elif a == "show_splash":
+        st.session_state.show_splash = True
+        st.session_state.splash_target_phase = sig.get("phase", "onboarding")
 
 
 # ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
@@ -865,8 +941,18 @@ if st.session_state.show_splash:
         st.write("")
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
-            if st.button("Start Onboarding  \u2192", use_container_width=True):
+            target = st.session_state.get("splash_target_phase", "onboarding")
+            btn_labels = {
+                "onboarding": "Start Onboarding  \u2192",
+                "programme_selection": "View Programme  \u2192",
+                "in_session": "Begin Session  \u2192",
+                "post_session": "Start Check-In  \u2192",
+                "pt_summary": "View Summary  \u2192"
+            }
+            lbl = btn_labels.get(target, "Continue  \u2192")
+            if st.button(lbl, use_container_width=True):
                 st.session_state.show_splash = False
+                st.session_state.phase = target
                 st.rerun()
 else:
     render_header()
@@ -883,8 +969,15 @@ else:
                 unsafe_allow_html=True,
             )
         else:
+            _msg_content = msg["content"]
+            # Small speaker icon SVG
+            _speaker_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>'
             st.markdown(
-                f'<div class="chat-row movy">{_avatar_html}<div class="bubble movy">{msg["content"]}</div></div>',
+                f'<div class="chat-row movy">{_avatar_html}'
+                f'<div class="bubble movy">'
+                f'<div class="bubble-text">{_msg_content}</div>'
+                f'<button class="bubble-speaker-btn" onclick="window.parent.__movy_speak_bubble(this)" title="Read aloud">'
+                f'{_speaker_svg}</button></div></div>',
                 unsafe_allow_html=True,
             )
 
@@ -969,6 +1062,10 @@ if st.session_state.phase == "pt_summary":
         <div class="summary-card">
           <h4>📋 PT Summary</h4>
           <div class="summary-field">
+            <span class="summary-key">Next Appointment</span>
+            <span class="summary-val">{st.session_state.patient_data.get("next_appointment","—")}</span>
+          </div>
+          <div class="summary-field">
             <span class="summary-key">Mid-session</span>
             <span class="summary-val">{summary.get("mid_session_memory","—")}</span>
           </div>
@@ -1016,6 +1113,33 @@ components.html(f"""
             storage.removeItem(key);
         }}
     }}
+
+    window.parent.__movy_speak = function(text, force) {{
+        if ((!vS.ttsEnabled && !force) || !synth) return;
+        try {{
+            synth.cancel(); 
+            var ut = new SpeechSynthesisUtterance(text);
+            var voices = synth.getVoices();
+            var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
+            var v = null;
+            for (var i = 0; i < pref.length; i++) {{
+                v = voices.find(vx => vx.name.includes(pref[i]));
+                if (v) break;
+            }}
+            if (!v) v = voices.find(vx => vx.name.toLowerCase().includes('female'));
+            if (!v) v = voices[0];
+            if (v) ut.voice = v;
+            ut.pitch = 1.05; ut.rate = 0.95;
+            synth.speak(ut);
+        }} catch(e) {{}}
+    }};
+
+    window.parent.__movy_speak_bubble = function(btn) {{
+        var bubbleText = btn.parentElement.querySelector('.bubble-text');
+        if (bubbleText) {{
+            window.parent.__movy_speak(bubbleText.innerText, true);
+        }}
+    }};
 
     function applyVideoStates() {{
         var vids = doc.querySelectorAll('[data-testid="stVideo"] video');
@@ -1077,26 +1201,6 @@ components.html(f"""
         vS.recognition = rec;
     }};
 
-    window.parent.__movy_speak = function(text) {{
-        if (!vS.ttsEnabled || !synth) return;
-        try {{
-            synth.cancel(); 
-            var ut = new SpeechSynthesisUtterance(text);
-            var voices = synth.getVoices();
-            var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
-            var v = null;
-            for (var i = 0; i < pref.length; i++) {{
-                v = voices.find(vx => vx.name.includes(pref[i]));
-                if (v) break;
-            }}
-            if (!v) v = voices.find(vx => vx.name.toLowerCase().includes('female'));
-            if (!v) v = voices[0];
-            if (v) ut.voice = v;
-            ut.pitch = 1.05; ut.rate = 0.95;
-            synth.speak(ut);
-        }} catch(e) {{}}
-    }};
-
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
         if (!container) return;
@@ -1115,9 +1219,20 @@ components.html(f"""
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
             `;
-            container.insertBefore(ctrls, container.firstChild);
+            // Position BEFORE the submit button
+            var submitBtn = container.querySelector('button[data-testid="stChatInputSubmitButton"]') || container.querySelector('button');
+            if (submitBtn) {{
+                container.insertBefore(ctrls, submitBtn);
+            }} else {{
+                container.appendChild(ctrls);
+            }}
         }} else if (!container.contains(ctrls)) {{
-            container.insertBefore(ctrls, container.firstChild);
+            var submitBtn = container.querySelector('button[data-testid="stChatInputSubmitButton"]') || container.querySelector('button');
+            if (submitBtn) {{
+                container.insertBefore(ctrls, submitBtn);
+            }} else {{
+                container.appendChild(ctrls);
+            }}
         }}
 
         // CRITICAL: Always re-bind handlers because the iframe functions are replaced every rerun
