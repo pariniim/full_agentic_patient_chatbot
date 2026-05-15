@@ -1080,6 +1080,7 @@ components.html(f"""
         }};
 
         rec.onend = rec.onerror = function() {{
+            if (vS.recognition) vS.recognition.active = false;
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
             var ind = doc.getElementById('movy-listening-indicator');
@@ -1112,44 +1113,53 @@ components.html(f"""
         var container = doc.querySelector('.stChatInput > div');
         if (!container) return;
 
-        var existing = doc.getElementById('movy-voice-ctrls');
-        if (existing) {{
-            if (container.contains(existing)) return;
-            existing.remove();
+        var ctrls = doc.getElementById('movy-voice-ctrls');
+        if (!ctrls) {{
+            ctrls = doc.createElement('div');
+            ctrls.id = 'movy-voice-ctrls';
+            ctrls.className = 'voice-controls';
+            ctrls.innerHTML = `
+                <div id="movy-listening-indicator" class="listening-indicator">Listening...</div>
+                <button id="movy-speaker-btn" class="voice-btn" title="Toggle Voice Output">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+                <button id="movy-mic-btn" class="voice-btn" title="Speak Answer">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                </button>
+            `;
+            container.insertBefore(ctrls, container.firstChild);
+        }} else if (!container.contains(ctrls)) {{
+            container.insertBefore(ctrls, container.firstChild);
         }}
 
-        var ctrls = doc.createElement('div');
-        ctrls.id = 'movy-voice-ctrls';
-        ctrls.className = 'voice-controls';
-        ctrls.innerHTML = `
-            <div id="movy-listening-indicator" class="listening-indicator">Listening...</div>
-            <button id="movy-speaker-btn" class="voice-btn ${{vS.ttsEnabled ? 'speaker-on' : ''}}" title="Toggle Voice Output">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-            </button>
-            <button id="movy-mic-btn" class="voice-btn" title="Speak Answer">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-            </button>
-        `;
-        container.insertBefore(ctrls, container.firstChild);
+        // CRITICAL: Always re-bind handlers because the iframe functions are replaced every rerun
+        var mic = doc.getElementById('movy-mic-btn');
+        var speaker = doc.getElementById('movy-speaker-btn');
+        
+        if (mic) {{
+            mic.classList.toggle('active', vS.recognition && vS.recognition.active);
+            mic.onclick = function(e) {{
+                e.preventDefault(); e.stopPropagation();
+                if (this.classList.contains('active')) {{
+                    if (vS.recognition) vS.recognition.stop();
+                }} else {{
+                    window.parent.__movy_initVoice();
+                    try {{ vS.recognition.start(); vS.recognition.active = true; }} catch(err) {{}}
+                }}
+            }};
+        }}
 
-        doc.getElementById('movy-mic-btn').onclick = function(e) {{
-            e.preventDefault(); e.stopPropagation();
-            if (this.classList.contains('active')) {{
-                if (vS.recognition) vS.recognition.stop();
-            }} else {{
-                window.parent.__movy_initVoice();
-                try {{ vS.recognition.start(); }} catch(err) {{}}
-            }}
-        }};
-
-        doc.getElementById('movy-speaker-btn').onclick = function(e) {{
-            e.preventDefault(); e.stopPropagation();
-            vS.ttsEnabled = !vS.ttsEnabled;
-            storage.setItem('movy_tts_enabled', vS.ttsEnabled);
-            this.classList.toggle('speaker-on', vS.ttsEnabled);
-            if (vS.ttsEnabled) window.parent.__movy_speak("Voice output enabled.");
-            else synth.cancel();
-        }};
+        if (speaker) {{
+            speaker.classList.toggle('speaker-on', vS.ttsEnabled);
+            speaker.onclick = function(e) {{
+                e.preventDefault(); e.stopPropagation();
+                vS.ttsEnabled = !vS.ttsEnabled;
+                storage.setItem('movy_tts_enabled', vS.ttsEnabled);
+                this.classList.toggle('speaker-on', vS.ttsEnabled);
+                if (vS.ttsEnabled) window.parent.__movy_speak("Voice output enabled.");
+                else synth.cancel();
+            }};
+        }}
     }}
 
     window.parent.__movy_readNewMessages = function() {{
