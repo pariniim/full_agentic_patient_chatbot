@@ -1411,83 +1411,77 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
 
 def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
-    if video_path.exists():
-        with open(video_path, "rb") as f:
-            v_b64 = base64.b64encode(f.read()).decode()
-            
-            started = st.session_state.get("video_started", False)
-            completed = st.session_state.get("video_completed", False)
-            v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
-            
-            # 1. Render Structure (No large base64 here)
-            st.markdown(f"""
-                <div class="video-overlay">
-                    <div class="video-modal-content">
-                        <div class="video-modal-header">
-                            <div class="video-modal-title">{data['title']}</div>
-                            <div class="video-modal-btns">
-                                <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">✕</button>
-                            </div>
-                        </div>
-                        <div class="video-modal-params">
-                            <div>Reps {data['reps']}</div>
-                            <div class="param-divider"></div>
-                            <div>Sets {data['sets']}</div>
-                            <div class="param-divider"></div>
-                            <div>Hold {data['hold']} seconds</div>
-                        </div>
-                        <div class="video-container-inner" style="height:480px; position:relative;">
-                            <div id="video-slot"></div>
-                        </div>
-                        <div style="height:60px; margin-top:1.5rem;"></div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 2. Render Overlay + Video content in a separate block to avoid parser overload
-            start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>' if not started else ""
-            
-            # Using a simpler markdown block for the heavy content
-            st.markdown(f"""
-                <style>
-                    #video-slot {{ display: none; }} /* hide the placeholder */
-                </style>
-                <div class="st-pos" style="top: calc(50% - 14px); left: 50%; transform: translate(-50%, -50%); width: 386px; height: 480px; z-index: 11002; pointer-events: none;">
-                    <div style="position: relative; width: 100%; height: 100%; border-radius: 24px; overflow: hidden; pointer-events: auto;">
-                        {start_overlay}
-                        <video {v_props} style="width: 100%; height: 100%; object-fit: cover;">
-                            <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
-                        </video>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 3. Hidden Streamlit Signal Buttons
-            st.markdown('<div style="display:none;">', unsafe_allow_html=True)
-            if st.button("HIDDEN_CLOSE"):
-                st.session_state.show_video_overlay = False
-                st.rerun()
-            if st.button("HIDDEN_START"):
-                st.session_state.video_started = True
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    if not video_path.exists():
+        st.error(f"Video {video_name} not found.")
+        if st.button("Close"):
+            st.session_state.show_video_overlay = False
+            st.rerun()
+        return
 
-            # 4. Mark as complete Button
-            st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
-            if st.button("Mark as complete", key="mark_complete_btn"):
-                st.session_state.video_completed = True
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    with open(video_path, "rb") as f:
+        v_b64 = base64.b64encode(f.read()).decode()
+    
+    started = st.session_state.get("video_started", False)
+    completed = st.session_state.get("video_completed", False)
+    v_props = "autoplay loop muted playsinline controls" if started else "muted playsinline"
+    
+    start_overlay = f'<div class="video-start-overlay"><button class="html-start-btn" onclick="triggerSt(\'HIDDEN_START\')">Start</button></div>' if not started else ""
+    
+    # Construct the full HTML in one go to ensure perfect containment
+    full_modal_html = f"""
+    <div class="video-overlay">
+        <div class="video-modal-content">
+            <div class="video-modal-header">
+                <div class="video-modal-title">{data['title']}</div>
+                <div class="video-modal-btns">
+                    <button class="html-btn" onclick="triggerSt('HIDDEN_CLOSE')">✕</button>
+                </div>
+            </div>
+            <div class="video-modal-params">
+                <div>Reps {data['reps']}</div>
+                <div class="param-divider"></div>
+                <div>Sets {data['sets']}</div>
+                <div class="param-divider"></div>
+                <div>Hold {data['hold']} seconds</div>
+            </div>
+            <div class="video-container-inner" style="height:480px; position:relative; border-radius:24px; overflow:hidden;">
+                {start_overlay}
+                <video {v_props} style="width:100%; height:100%; object-fit:cover;">
+                    <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
+                </video>
+            </div>
+            <div style="height:80px; margin-top:1.5rem;"></div> <!-- space for complete btn -->
+        </div>
+    </div>
+    """
+    st.markdown(full_modal_html, unsafe_allow_html=True)
 
-            # Logic jump after completion
-            if completed:
-                time.sleep(0.5)
-                st.session_state.show_video_overlay = False
-                _trigger = "I have finished the exercise. How am I doing?"
-                st.session_state.full_history.append({"role": "user", "content": _trigger})
-                st.session_state.messages.append({"role": "user", "content": _trigger})
-                st.session_state.in_session_step = "ex1_checkin_pending"
-                st.rerun()
+    # Hidden Streamlit Signal Buttons
+    st.markdown('<div style="display:none;">', unsafe_allow_html=True)
+    if st.button("HIDDEN_CLOSE"):
+        st.session_state.show_video_overlay = False
+        st.rerun()
+    if st.button("HIDDEN_START"):
+        st.session_state.video_started = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Mark as complete Button (Positional container)
+    st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
+    if st.button("Mark as complete", key="mark_complete_btn"):
+        st.session_state.video_completed = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Logic jump after completion
+    if completed:
+        time.sleep(0.5)
+        st.session_state.show_video_overlay = False
+        _trigger = "I have finished the exercise. How am I doing?"
+        st.session_state.full_history.append({"role": "user", "content": _trigger})
+        st.session_state.messages.append({"role": "user", "content": _trigger})
+        st.session_state.in_session_step = "ex1_checkin_pending"
+        st.rerun()
     else:
         st.error(f"Video {video_name} not found.")
         if st.button("Close"):
