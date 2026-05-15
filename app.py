@@ -739,7 +739,7 @@ Compute next_appointment_date as follows:
 Store next_appointment_date.
 
 Then, do NOT speak further. Immediately emit:
-<MOVY_SIGNAL>{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}</MOVY_SIGNAL>
+<MOVY_SIGNAL>{{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}}</MOVY_SIGNAL>
 
 ══════════════════════════════════════
 PHASE 3 — IN-SESSION
