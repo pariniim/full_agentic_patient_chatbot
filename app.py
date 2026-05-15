@@ -1176,10 +1176,19 @@ components.html(f"""
 
     window.parent.__movy_speak = function(text, force) {{
         if ((!vS.ttsEnabled && !force) || !synth) return;
+        
+        var voices = synth.getVoices();
+        if (voices.length === 0 && !window.parent.__movy_voice_warming) {{
+            window.parent.__movy_voice_warming = true;
+            synth.onvoiceschanged = function() {{ 
+                window.parent.__movy_speak(text, force); 
+            }};
+            return;
+        }}
+
         try {{
             synth.cancel(); 
             var ut = new window.parent.SpeechSynthesisUtterance(text);
-            var voices = synth.getVoices();
             var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
             var v = null;
             for (var i = 0; i < pref.length; i++) {{
@@ -1209,6 +1218,12 @@ components.html(f"""
         var container = inputArea ? inputArea.parentElement : doc.querySelector('.stChatInput > div');
         if (!container) return;
 
+        // Force horizontal layout to prevent stacking
+        container.style.display = 'flex';
+        container.style.flexDirection = 'row';
+        container.style.alignItems = 'center';
+        container.style.flexWrap = 'nowrap';
+
         var ctrls = doc.getElementById('movy-voice-ctrls');
         if (!ctrls) {{
             ctrls = doc.createElement('div');
@@ -1220,15 +1235,19 @@ components.html(f"""
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
             `;
+            ctrls.style.flex = '0 0 auto';
             var submitBtn = container.querySelector('button[data-testid="stChatInputSubmitButton"]') || container.querySelector('button');
             if (submitBtn) {{
+                submitBtn.style.flex = '0 0 auto';
                 container.insertBefore(ctrls, submitBtn);
             }} else {{
                 container.appendChild(ctrls);
             }}
         }} else if (!container.contains(ctrls)) {{
+            ctrls.style.flex = '0 0 auto';
             var submitBtn = container.querySelector('button[data-testid="stChatInputSubmitButton"]') || container.querySelector('button');
             if (submitBtn) {{
+                submitBtn.style.flex = '0 0 auto';
                 container.insertBefore(ctrls, submitBtn);
             }} else {{
                 container.appendChild(ctrls);
