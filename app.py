@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import json, re, time, base64, random
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from openai import OpenAI
 
@@ -423,6 +423,62 @@ div.stButton {
     color: #5A6480;
     font-size: 1.3rem;
     margin-bottom: 2rem !important;
+}
+
+/* Appointment Summary Cards */
+.appointment-summary-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    width: 100%;
+}
+.summary-header-card {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+.summary-header-img {
+    width: 200px;
+    height: auto;
+    margin-bottom: 1rem;
+}
+.summary-row {
+    display: flex;
+    gap: 1.2rem;
+    width: 100%;
+    justify-content: center;
+}
+.summary-param-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 1.5rem;
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #E0E2E7;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+.summary-param-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1d27;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #F0F2F7;
+    padding-bottom: 0.5rem;
+}
+.param-item {
+    font-size: 0.88rem;
+    color: #5A6480;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+.param-title {
+    font-weight: 600;
+    color: #1a1d27;
+    margin-bottom: 0.2rem;
+}
+.param-detail {
+    margin-bottom: 0.5rem;
 }
 
 .splash-native-btn {
@@ -1044,7 +1100,7 @@ if st.session_state.show_splash:
         """, unsafe_allow_html=True)
         
         btn_labels = {
-            "onboarding": "Start Onboarding  →",
+            "onboarding": "Appointment  →",
             "programme_selection": "View Programme  →",
             "in_session": "Begin Session  →",
             "post_session": "Start Check-In  →",
@@ -1056,10 +1112,77 @@ if st.session_state.show_splash:
         if st.button(lbl, use_container_width=True, key="splash_cta"):
             st.session_state.show_splash = False
             st.session_state.messages = []
-            st.session_state.phase = target
+            if target == "programme_selection":
+                st.session_state.phase = "appointment_summary"
+            else:
+                st.session_state.phase = target
             st.rerun()
     
     st.stop()
+
+def render_appointment_summary():
+    render_header()
+    
+    st.markdown('<div class="appointment-summary-container">', unsafe_allow_html=True)
+    
+    # Character Header
+    try:
+        with open("assets/images/movy.png", "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+            st.markdown(f"""
+                <div class="summary-header-card">
+                    <img src="data:image/png;base64,{b64}" class="summary-header-img">
+                    <h2 style="font-size:1.6rem; color:#1a1d27;">You finished your appointment and Dr Smith has completed the program configuration.</h2>
+                </div>
+            """, unsafe_allow_html=True)
+    except:
+        st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration.</h2>', unsafe_allow_html=True)
+    
+    # Side-by-side cards
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(f"""
+            <div class="summary-param-card">
+                <h3>Program Parameters</h3>
+                <div class="param-item">
+                    <div class="param-title">Exercise 1</div>
+                    <div class="param-detail">Sets: 3 | Reps: 5<br>Hold: 5 sec | Side: Both</div>
+                </div>
+                <div class="param-item">
+                    <div class="param-title">Exercise 2</div>
+                    <div class="param-detail">Sets: 3 | Reps: 5<br>Hold: 5 sec | Side: Both</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        start_date = (date.today() + timedelta(days=1)).strftime("%d %B %Y")
+        next_app = st.session_state.patient_data.get("next_appointment", "[date]")
+        
+        st.markdown(f"""
+            <div class="summary-param-card">
+                <h3>Clinical Parameters</h3>
+                <div class="param-item">
+                    <div class="param-title">Pain Threshold</div>
+                    <div class="param-detail">Alert me if patient reports pain 8 / 10</div>
+                </div>
+                <div class="param-item">
+                    <div class="param-title">Program Details</div>
+                    <div class="param-detail">Start: {start_date}<br>Next App: {next_app}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Start My Session  →", use_container_width=True):
+        st.session_state.phase = "programme_selection"
+        st.rerun()
+
+elif st.session_state.phase == "appointment_summary":
+    render_appointment_summary()
 else:
     render_header()
     # \u2500\u2500 Render chat history \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
