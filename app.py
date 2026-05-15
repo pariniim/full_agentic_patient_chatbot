@@ -830,18 +830,10 @@ Compute next_appointment_date as follows:
   (e.g., 09:00, 09:30, 10:00, 10:30, …).
 Store next_appointment_date.
 
-Then say:
-"Great, I have everything I need. Your next appointment is scheduled for [next_appointment_date]. 
-When you're ready, you can start your exercise session by tapping the button below."
-
-After saying this, proactively invite the user:
-"Would you like to begin your session now?"
-
-Then emit:
+Then, do NOT speak further. Immediately emit:
 <MOVY_SIGNAL>{{"action":"onboarding_complete","next_appointment":"[next_appointment_date]"}}</MOVY_SIGNAL>
 
-The UI will show a 'Start Session' button. Movy should encourage the user to tap it,
-but must wait for the user to press the button before moving to Programme Selection.
+Wait for the user to press the 'Start Session' button to move to Programme Selection.
 
 ══════════════════════════════════════
 PHASE TRANSITION — SHOW SPLASH SCREEN
@@ -1979,8 +1971,11 @@ if user_input and user_input.strip():
         # Since it acknowledged and moved on, assume pain < 8 and show button.
         st.session_state.in_session_step = "ex1_checkin_answered"
 
-    ph.markdown(f'<div class="chat-row movy"><div class="bubble movy">{clean}</div></div>',
-                unsafe_allow_html=True)
+    if clean.strip():
+        ph.markdown(f'<div class="chat-row movy"><div class="bubble movy">{clean}</div></div>',
+                    unsafe_allow_html=True)
+    else:
+        ph.empty()
     st.rerun()
 
 # ── "Continue to Exercise 2" button ─────────────────────────────────────────
