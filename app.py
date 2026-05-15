@@ -1150,55 +1150,45 @@ def render_appointment_summary():
     except:
         st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration.</h2>', unsafe_allow_html=True)
     
-    # CARD 1: Program Parameters
-    prog_html = """
-    <div class="summary-param-card">
-        <h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Program Parameters</h2>
-        <hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">
-    """
+    # Remove leading indentation to prevent Streamlit from interpreting HTML as a code block
+    prog_html = """<div class="summary-param-card">
+<h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Program Parameters</h2>
+<hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">"""
+    
     for i in range(1, 4):
-        prog_html += f"""
-        <div class="param-item">
-            <div class="exercise-title" style="font-size:1.25rem; margin-bottom:0.4rem;">[Exercise {i}]</div>
-            <div class="pill-row">
-                <div class="pill-container"><div class="pill-label">Sets</div><div class="param-pill">3</div></div>
-                <div class="pill-container"><div class="pill-label">Reps</div><div class="param-pill">5</div></div>
-                <div class="pill-container"><div class="pill-label">Hold</div><div class="param-pill">5 sec</div></div>
-                <div class="pill-container"><div class="pill-label">Side</div><div class="param-pill">Both <span style="font-size:0.7rem; margin-left:0.2rem;">▼</span></div></div>
-            </div>
-        </div>
-        """
+        prog_html += f"""<div class="param-item">
+<div class="exercise-title" style="font-size:1.25rem; margin-bottom:0.4rem;">[Exercise {i}]</div>
+<div class="pill-row">
+<div class="pill-container"><div class="pill-label">Sets</div><div class="param-pill">3</div></div>
+<div class="pill-container"><div class="pill-label">Reps</div><div class="param-pill">5</div></div>
+<div class="pill-container"><div class="pill-label">Hold</div><div class="param-pill">5 sec</div></div>
+<div class="pill-container"><div class="pill-label">Side</div><div class="param-pill">Both <span style="font-size:0.7rem; margin-left:0.2rem;">▼</span></div></div>
+</div>
+</div>"""
     prog_html += "</div>"
     
-    # CARD 2: Clinical Parameters
     start_date = (date.today() + timedelta(days=1)).strftime("%d %B %Y")
     next_app = st.session_state.patient_data.get("next_appointment", "[date]")
     
-    clin_html = f"""
-    <div class="summary-param-card">
-        <h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Clinical Parameters</h2>
-        <hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">
-        
-        <div class="clinical-label" style="margin-top:0; color:#8E98B0; font-weight:500;">Pain Threshold</div>
-        <div style="display:flex; align-items:center; font-size:1.15rem; color:#1a1d27; margin-bottom:2rem; font-weight:500;">
-            Alert me if patient reports pain <div class="circle-pill" style="width:44px; height:44px; font-size:1.1rem;">8</div> <span style="color:#A5ADC1; margin-left:0.25rem;">/10</span>
-        </div>
-        
-        <div class="clinical-label" style="color:#8E98B0; font-weight:500;">Program Start</div>
-        <div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            {start_date}
-        </div>
-        
-        <div class="clinical-label" style="margin-top:2rem; color:#8E98B0; font-weight:500;">Next Appointment</div>
-        <div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            {next_app}
-        </div>
-    </div>
-    """
+    clin_html = f"""<div class="summary-param-card">
+<h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Clinical Parameters</h2>
+<hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">
+<div class="clinical-label" style="margin-top:0; color:#8E98B0; font-weight:500;">Pain Threshold</div>
+<div style="display:flex; align-items:center; font-size:1.15rem; color:#1a1d27; margin-bottom:2rem; font-weight:500;">
+Alert me if patient reports pain <div class="circle-pill" style="width:44px; height:44px; font-size:1.1rem;">8</div> <span style="color:#A5ADC1; margin-left:0.25rem;">/10</span>
+</div>
+<div class="clinical-label" style="color:#8E98B0; font-weight:500;">Program Start</div>
+<div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+{start_date}
+</div>
+<div class="clinical-label" style="margin-top:2rem; color:#8E98B0; font-weight:500;">Next Appointment</div>
+<div class="date-pill" style="border-color:#8E98B0; padding: 0.75rem 1.25rem; font-size:1rem; border-radius:24px;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+{next_app}
+</div>
+</div>"""
     
-    # Unify the rendering to prevent Streamlit from auto-closing tags
     st.markdown(f'<div class="summary-row">{prog_html}{clin_html}</div>', unsafe_allow_html=True)
     
     st.markdown("<br><br>", unsafe_allow_html=True)
