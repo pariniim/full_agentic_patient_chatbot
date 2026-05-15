@@ -142,7 +142,7 @@ section[data-testid="stSidebar"]{display:none;}
     width: 100% !important;
     z-index: 5000 !important;
     background: #FFFFFF !important;
-    padding: 10px 14px 24px 14px !important;
+    padding: 10px 14px 60px 14px !important;
     box-shadow: 0 -1px 0 rgba(0,0,0,0.06) !important;
 }
 /* Every wrapper div Streamlit nests inside the bar → all #F0F2F7 */
@@ -225,6 +225,7 @@ section[data-testid="stSidebar"]{display:none;}
     align-items: center;
     gap: 8px;
     margin-right: 8px;
+    margin-left: auto; /* Push to right next to submit button */
 }
 
 .voice-btn {
@@ -1188,6 +1189,7 @@ components.html(f"""
             if (!v) v = voices[0];
             if (v) ut.voice = v;
             ut.pitch = 1.05; ut.rate = 0.95;
+            if (synth.paused) synth.resume();
             synth.speak(ut);
         }} catch(e) {{}}
     }};
@@ -1201,7 +1203,9 @@ components.html(f"""
     }};
 
     function injectVoiceUI() {{
-        var container = doc.querySelector('.stChatInput > div');
+        // Target the actual interactive area of the chat input bar
+        var inputArea = doc.querySelector('[data-testid="stChatInput"] div[data-baseweb="base-input"]');
+        var container = inputArea ? inputArea.parentElement : doc.querySelector('.stChatInput > div');
         if (!container) return;
 
         var ctrls = doc.getElementById('movy-voice-ctrls');
