@@ -1372,7 +1372,10 @@ def render_video_overlay(video_name, data):
             # Force the LLM to reply automatically to this trigger
             st.session_state.force_llm_reply = True
             
-            st.session_state.in_session_step = "ex1_completed"
+            if "Ex02" in st.session_state.get("current_video", ""):
+                st.session_state.in_session_step = "ex2_completed"
+            else:
+                st.session_state.in_session_step = "ex1_completed"
             st.rerun()
 
 
@@ -1913,5 +1916,14 @@ if (
         # Defensive: if the LLM didn't emit the signal, force state forward
         if st.session_state.get("in_session_step") == "ex1_checkin_answered":
             st.session_state.in_session_step = "ex2_ready"
+            
+        st.session_state.show_video_overlay = True
+        st.session_state.current_video = "Ex02_square.mp4"
+        st.session_state.video_started = False
+        st.session_state.video_completed = False
+        st.session_state.overlay_data = {
+            "title": "Exercise 2",
+            "reps": 5, "sets": 3, "hold": 5
+        }
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
