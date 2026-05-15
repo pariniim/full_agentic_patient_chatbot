@@ -384,7 +384,7 @@ section[data-testid="stSidebar"]{display:none;}
 /* Streamlit button overrides */
 .stButton>button{background: #2B5CD9 !important; color:#FFFFFF !important; border:none;
   border-radius:24px;font-family:'Inter',sans-serif;font-size:1rem;font-weight:600;
-  padding:0.8rem 3rem 0.8rem 2rem;cursor:pointer;transition:all 0.2s;
+  padding:0.8rem 2.2rem 0.8rem 2rem;cursor:pointer;transition:all 0.2s;
   white-space: nowrap !important;
   box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
 .stButton>button:hover{background: #1e4bb3 !important; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
@@ -1316,20 +1316,22 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
 def render_video_overlay(video_name, data):
     video_path = Path("assets/video") / video_name
     
-    # Inject CSS to style the border container as a premium white card
+    # Inject CSS to style the entire block-container as a premium white card
     st.markdown("""
         <style>
-        [data-testid="stVerticalBlockBorderWrapper"] {
+        .block-container {
             background-color: #FFFFFF !important;
             border-radius: 20px !important;
-            padding: 1.5rem !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+            padding: 3rem 2.5rem !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06) !important;
             border: 1px solid rgba(0,0,0,0.04) !important;
+            margin-top: 2rem !important;
+            margin-bottom: 2rem !important;
         }
         </style>
     """, unsafe_allow_html=True)
     
-    with st.container(border=True):
+    with st.container():
         st.markdown(f"<h2 style='margin-top:0;'>{data['title']}</h2>", unsafe_allow_html=True)
         
         # Clinical Parameters
@@ -1581,6 +1583,13 @@ if st.session_state.phase == "pt_summary":
             <span class="summary-val">{flag_html}</span>
           </div>
         </div>""", unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        _, end_col, _ = st.columns([1, 2, 1])
+        with end_col:
+            if st.button("End current session", type="primary", use_container_width=True):
+                st.session_state.clear()
+                st.rerun()
 
 # ── JS helpers: placeholder colour + scroll + video play/pause control ─────────
 _is_splash  = "true"  if st.session_state.show_splash else "false"
