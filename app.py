@@ -658,19 +658,19 @@ div.stButton {
 st.markdown("""
 <script>
 window.triggerSt = function(label) {
-    // Extensive search across the entire parent DOM
-    const allButtons = Array.from(window.parent.document.querySelectorAll('button'));
-    let target = allButtons.find(b => b.innerText.trim() === label);
-    
-    // If exact match fails, try recursive text search inside buttons
-    if (!target) {
-        target = allButtons.find(b => b.textContent.includes(label));
-    }
-    
+    console.log('Movy Bridge: Signaling ' + label);
+    // Search both current and parent documents (Streamlit environment safe)
+    const findIn = (doc) => {
+        const btns = Array.from(doc.querySelectorAll('button'));
+        return btns.find(b => b.innerText.trim() === label || b.textContent.includes(label));
+    };
+
+    let target = findIn(document) || findIn(window.parent.document);
+
     if (target) {
         target.click();
     } else {
-        console.error('Movy Bridge: Logic Signal "' + label + '" not found in DOM.');
+        console.error('Movy Bridge: Logic Signal "' + label + '" not found.');
     }
 }
 </script>
@@ -1464,17 +1464,7 @@ def render_video_overlay(video_name, data):
     """
     st.markdown(full_modal_html, unsafe_allow_html=True)
 
-    # Hidden Streamlit Signal Buttons - Off-screen but in DOM for JS reliability
-    st.markdown("""
-        <div style="position:fixed; top:-500px; left:-500px; opacity:0; pointer-events:none; z-index:-1;">
-    """, unsafe_allow_html=True)
-    if st.button("HIDDEN_CLOSE"):
-        st.session_state.show_video_overlay = False
-        st.rerun()
-    if st.button("HIDDEN_START"):
-        st.session_state.video_started = True
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Buttons are now handled globally
 
     # Mark as complete Button (Positional container)
     st.markdown(f'<div class="st-pos complete-pos mark-complete-container {"btn-completed" if completed else ""}">', unsafe_allow_html=True)
@@ -1498,6 +1488,16 @@ def render_video_overlay(video_name, data):
             st.session_state.show_video_overlay = False
             st.rerun()
 
+
+# ── Global Logic Signals (Invisible) ──────────────────────────────────────────
+st.markdown('<div style="position:fixed; top:-999px; left:-999px; opacity:0; pointer-events:none;">', unsafe_allow_html=True)
+if st.button("HIDDEN_CLOSE", key="global_close_sig"):
+    st.session_state.show_video_overlay = False
+    st.rerun()
+if st.button("HIDDEN_START", key="global_start_sig"):
+    st.session_state.video_started = True
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
 if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
