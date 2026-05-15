@@ -1438,11 +1438,6 @@ def render_video_overlay(video_name, data):
         if st.button("Close"):
             st.session_state.show_video_overlay = False
             st.rerun()
-    else:
-        st.error(f"Video {video_name} not found.")
-        if st.button("Close"):
-            st.session_state.show_video_overlay = False
-            st.rerun()
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
 if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
