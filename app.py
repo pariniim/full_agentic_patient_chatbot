@@ -1137,7 +1137,13 @@ components.html(f"""
 
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
-        if (!container || doc.getElementById('movy-voice-ctrls')) return;
+        if (!container) return;
+
+        var existing = doc.getElementById('movy-voice-ctrls');
+        if (existing) {{
+            if (container.contains(existing)) return;
+            existing.remove();
+        }}
         var ctrls = doc.createElement('div');
         ctrls.id = 'movy-voice-ctrls';
         ctrls.className = 'voice-controls';
