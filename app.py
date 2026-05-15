@@ -1787,6 +1787,27 @@ components.html(f"""
 # ── Chat input (hidden during splash) ───────────────────────────────────────
 if not st.session_state.get("show_splash", True):
     user_input = st.chat_input("Type your message…")
+    
+    # PROACTIVE TRIGGER: If chat is empty and we just started onboarding, force Movy to speak
+    if not st.session_state.messages and st.session_state.phase == "onboarding":
+        typing_ph = st.empty()
+        typing_ph.markdown('<div class="chat-row movy"><div class="typing-indicator"><span></span><span></span><span></span></div></div>', unsafe_allow_html=True)
+        
+        # Hidden trigger to start the onboarding journey
+        _trigger_history = [{"role": "system", "content": "The user has just started the app. Please provide a warm greeting and start the onboarding process by asking the first relevant question."}]
+        # We merge with existing history if any (usually empty here)
+        _full_h = st.session_state.full_history + [{"role": "user", "content": "Start onboarding"}]
+        
+        reply = call_llm(_full_h)
+        typing_ph.empty()
+        clean, sig = parse_signal(reply)
+        
+        # Append to history so the conversation flow is maintained
+        st.session_state.full_history.append({"role": "user", "content": "Start onboarding"})
+        st.session_state.full_history.append({"role": "assistant", "content": clean})
+        st.session_state.messages.append({"role": "assistant", "content": clean})
+        process_signal(sig)
+        st.rerun()
 else:
     user_input = None
 
