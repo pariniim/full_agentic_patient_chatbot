@@ -1114,33 +1114,6 @@ components.html(f"""
         }}
     }}
 
-    window.parent.__movy_speak = function(text, force) {{
-        if ((!vS.ttsEnabled && !force) || !synth) return;
-        try {{
-            synth.cancel(); 
-            var ut = new SpeechSynthesisUtterance(text);
-            var voices = synth.getVoices();
-            var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
-            var v = null;
-            for (var i = 0; i < pref.length; i++) {{
-                v = voices.find(vx => vx.name.includes(pref[i]));
-                if (v) break;
-            }}
-            if (!v) v = voices.find(vx => vx.name.toLowerCase().includes('female'));
-            if (!v) v = voices[0];
-            if (v) ut.voice = v;
-            ut.pitch = 1.05; ut.rate = 0.95;
-            synth.speak(ut);
-        }} catch(e) {{}}
-    }};
-
-    window.parent.__movy_speak_bubble = function(btn) {{
-        var bubbleText = btn.parentElement.querySelector('.bubble-text');
-        if (bubbleText) {{
-            window.parent.__movy_speak(bubbleText.innerText, true);
-        }}
-    }};
-
     function applyVideoStates() {{
         var vids = doc.querySelectorAll('[data-testid="stVideo"] video');
         vids.forEach(function(v, i) {{
@@ -1148,7 +1121,6 @@ components.html(f"""
         }});
     }}
 
-    // 4. Persistent Voice System (Self-healing architecture)
     var vS = window.parent.__movy_voice = window.parent.__movy_voice || {{
         recognition: null,
         ttsEnabled: storage.getItem('movy_tts_enabled') === 'true',
@@ -1162,7 +1134,6 @@ components.html(f"""
         storage.setItem('movy_tts_enabled', 'false');
     }}
 
-    // Core functions attached to window.parent to survive iframe death
     window.parent.__movy_initVoice = function() {{
         if (!SpeechRecognition) return;
         if (vS.recognition) try {{ vS.recognition.abort(); }} catch(e) {{}}
@@ -1201,6 +1172,34 @@ components.html(f"""
         vS.recognition = rec;
     }};
 
+    window.parent.__movy_speak = function(text, force) {{
+        if ((!vS.ttsEnabled && !force) || !synth) return;
+        try {{
+            synth.cancel(); 
+            var ut = new SpeechSynthesisUtterance(text);
+            var voices = synth.getVoices();
+            var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
+            var v = null;
+            for (var i = 0; i < pref.length; i++) {{
+                v = voices.find(vx => vx.name.includes(pref[i]));
+                if (v) break;
+            }}
+            if (!v) v = voices.find(vx => vx.name.toLowerCase().includes('female'));
+            if (!v) v = voices[0];
+            if (v) ut.voice = v;
+            ut.pitch = 1.05; ut.rate = 0.95;
+            synth.speak(ut);
+        }} catch(e) {{}}
+    }};
+
+    window.parent.__movy_speak_bubble = function(btn) {{
+        var bubble = btn.closest('.bubble.movy');
+        var bubbleText = bubble ? bubble.querySelector('.bubble-text') : null;
+        if (bubbleText) {{
+            window.parent.__movy_speak(bubbleText.innerText, true);
+        }}
+    }};
+
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
         if (!container) return;
@@ -1219,7 +1218,6 @@ components.html(f"""
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
             `;
-            // Position BEFORE the submit button
             var submitBtn = container.querySelector('button[data-testid="stChatInputSubmitButton"]') || container.querySelector('button');
             if (submitBtn) {{
                 container.insertBefore(ctrls, submitBtn);
