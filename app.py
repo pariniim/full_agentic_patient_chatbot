@@ -564,30 +564,12 @@ div.stButton {
     position: relative;
     z-index: 11001;
 }
-.html-btn {
-    background: white;
-    border: 1px solid #EAECEF;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1.2rem;
-    transition: all 0.2s;
-}
-.html-btn:hover { background: #F8F9FA; border-color: #D1D5DB; }
-
-.html-start-btn:active {
-    transform: translateY(0) !important;
-}
-/* Pinning native buttons to the modal - using FIXED to bypass Streamlit container isolation */
+/* Pinning native buttons to the modal - using MAX z-index to bypass stacking contexts */
 .st-close-pin {
     position: fixed !important;
     top: calc(50% - 330px);
     left: calc(50% + 175px);
-    z-index: 13000;
+    z-index: 2147483647 !important;
 }
 .st-close-pin button {
     border-radius: 50% !important;
@@ -604,7 +586,7 @@ div.stButton {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 13000;
+    z-index: 2147483647 !important;
 }
 .st-start-pin button {
     background: #2B5CD9 !important;
@@ -620,10 +602,9 @@ div.stButton {
 .st-start-pin button:hover {
     background: #1e4bb3 !important;
 }
-/* Complete button remains a Streamlit button for the green state logic, but fixed positioning */
 .st-pos {
     position: fixed !important;
-    z-index: 13000;
+    z-index: 2147483647 !important;
 }
 .complete-pos {
     bottom: 32px;
