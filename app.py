@@ -1570,16 +1570,12 @@ if st.session_state.phase == "in_session":
     ex1_s = st.session_state.ex_state.get(1, "idle")
     ex2_s = st.session_state.ex_state.get(2, "idle")
 
-    # Show ex1 widget while it hasn't been replaced by ex2 starting
-    ex2_active = ex2_s in ("playing", "complete") or step == "ex2_ready"
-    if (step in ("ex1_ready", "ex1_checkin_pending") or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
-        render_video_widget(1)
+    # Legacy widgets disabled in favor of the new premium modal overlay
+    # if (step in ("ex1_ready", "ex1_checkin_pending") or ex1_s in ("playing", "complete")) and not (ex1_s == "complete" and ex2_active):
+    #     render_video_widget(1)
 
-    # Show ex2 widget ONLY once Movy has formally introduced it after the
-    # mid-session check-in (introduce_exercise signal sets step to ex2_ready).
-    # While in ex1_checkin_pending the check-in reply is still outstanding.
-    if step == "ex2_ready" or ex2_s in ("playing", "paused", "complete"):
-        render_video_widget(2)
+    # if step == "ex2_ready" or ex2_s in ("playing", "paused", "complete"):
+    #     render_video_widget(2)
 
 # ── PT Summary card ───────────────────────────────────────────────────────────
 if st.session_state.phase == "pt_summary":
