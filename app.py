@@ -481,6 +481,37 @@ div.stButton {
     margin-bottom: 0.5rem;
 }
 
+/* Video Overlay Styles */
+.video-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    z-index: 11000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+.video-modal-content {
+    width: 90%;
+    max-width: 600px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+.video-modal-content video {
+    width: 100%;
+    display: block;
+}
+.close-overlay-btn {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 11001;
+}
+
 .splash-native-btn {
     background: #2B5CD9 !important;
     color: #FFFFFF !important;
@@ -911,6 +942,10 @@ if "in_session_step" not in st.session_state:
     st.session_state.in_session_step = "intro"
 if "ex_state" not in st.session_state:
     st.session_state.ex_state = {1: "idle", 2: "idle"}
+if "show_video_overlay" not in st.session_state:
+    st.session_state.show_video_overlay = False
+if "current_video" not in st.session_state:
+    st.session_state.current_video = None
 
 # ── Proactive opening ─────────────────────────────────────────────────────────
 if not st.session_state.messages and not st.session_state.show_splash:
@@ -1102,9 +1137,44 @@ def render_appointment_summary():
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Start My Session  →", use_container_width=True):
-        st.session_state.phase = "programme_selection"
+    if st.button("Start Session  →", use_container_width=True):
+        st.session_state.phase = "in_session"
+        st.session_state.in_session_step = "ex1_ready"
+        st.session_state.show_video_overlay = True
+        st.session_state.current_video = "Ex01_square.mp4"
         st.rerun()
+
+def render_video_overlay(video_name):
+    video_path = Path("assets/video") / video_name
+    if video_path.exists():
+        with open(video_path, "rb") as f:
+            v_b64 = base64.b64encode(f.read()).decode()
+            st.markdown(f"""
+                <div class="video-overlay">
+                    <div class="video-modal-content">
+                        <video autoplay loop muted playsinline>
+                            <source src="data:video/mp4;base64,{v_b64}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        # Streamlit button to close, positioned top right via CSS
+        st.markdown('<div class="close-overlay-btn">', unsafe_allow_html=True)
+        if st.button("Close [X]", key="close_vid_overlay"):
+            st.session_state.show_video_overlay = False
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.error(f"Video {video_name} not found.")
+        if st.button("Close"):
+            st.session_state.show_video_overlay = False
+            st.rerun()
+
+# ── Main rendering logic ─────────────────────────────────────────────────────
+if st.session_state.get("show_video_overlay") and st.session_state.get("current_video"):
+    render_video_overlay(st.session_state.current_video)
+    st.stop()
 
 # ── Splash screen ────────────────────────────────────────────────────────────
 if st.session_state.show_splash:
