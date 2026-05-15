@@ -530,7 +530,11 @@ div.stButton {
 .summary-param-card {
     background: #FFFFFF;
     border-radius: 20px;
+    padding: 2.25rem;
+    flex: 1;
+    display: flex;
     flex-direction: column;
+    border: 1px solid #EAECEF;
 }
 
 /* Video Overlay Styles */
