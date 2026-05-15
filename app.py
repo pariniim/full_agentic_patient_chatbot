@@ -385,6 +385,11 @@ section[data-testid="stSidebar"]{display:none;}
   white-space: nowrap !important;
   box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2);}
 .stButton>button:hover{background: #1e4bb3 !important; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(43, 92, 217, 0.3);}
+/* Ensure splash button is on top */
+div.stButton {
+    position: relative;
+    z-index: 10000 !important;
+}
 /* No secondary buttons - all CTAs should be blue/white */
 
 
@@ -402,8 +407,8 @@ section[data-testid="stSidebar"]{display:none;}
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding-top: 15vh; /* Push down to center */
-    z-index: 9001;
+    padding-top: 15vh;
+    z-index: 9999 !important; /* Extremely high to be on top of bg */
     position: relative;
 }
 
