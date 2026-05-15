@@ -225,7 +225,8 @@ section[data-testid="stSidebar"]{display:none;}
     align-items: center;
     gap: 8px;
     margin-right: 8px;
-    margin-left: auto; /* Push to right next to submit button */
+    margin-left: auto; 
+    align-self: center !important;
 }
 
 .voice-btn {
@@ -1177,7 +1178,7 @@ components.html(f"""
         if ((!vS.ttsEnabled && !force) || !synth) return;
         try {{
             synth.cancel(); 
-            var ut = new SpeechSynthesisUtterance(text);
+            var ut = new window.parent.SpeechSynthesisUtterance(text);
             var voices = synth.getVoices();
             var pref = ['Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Samantha', 'Victoria', 'Fiona'];
             var v = null;
