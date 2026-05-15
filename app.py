@@ -1150,9 +1150,6 @@ def render_appointment_summary():
     except:
         st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration.</h2>', unsafe_allow_html=True)
     
-    # Using a single row to force same height via stretch
-    st.markdown('<div class="summary-row">', unsafe_allow_html=True)
-    
     # CARD 1: Program Parameters
     prog_html = """
     <div class="summary-param-card">
@@ -1201,7 +1198,8 @@ def render_appointment_summary():
     </div>
     """
     
-    st.markdown(prog_html + clin_html + '</div>', unsafe_allow_html=True)
+    # Unify the rendering to prevent Streamlit from auto-closing tags
+    st.markdown(f'<div class="summary-row">{prog_html}{clin_html}</div>', unsafe_allow_html=True)
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     # Center the button under the two cards
