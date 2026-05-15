@@ -561,30 +561,30 @@ div.stButton {
     box-shadow: 0 30px 60px rgba(0,0,0,0.12);
     display: flex;
     flex-direction: column;
-    position: relative;
+    position: relative; /* Anchor for absolute buttons */
     z-index: 11001;
 }
-/* Precision positioning for Streamlit buttons over the HTML shell */
+/* Precision positioning for Streamlit buttons RELATIVE to modal */
 .st-pos {
-    position: fixed;
+    position: absolute !important;
     z-index: 11005;
 }
 .close-pos {
-    top: calc(50% - 228px);
-    left: calc(50% + 158px);
+    top: 32px;
+    right: 32px;
     margin-bottom: 0 !important;
 }
 .start-pos {
-    top: calc(50% + 75px);
+    top: 380px;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     margin-bottom: 0 !important;
 }
 .complete-pos {
-    top: calc(50% + 280px);
+    bottom: 32px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 386px;
+    transform: translateX(-50%);
+    width: calc(100% - 4rem);
     margin-bottom: 0 !important;
 }
 .complete-pos button {
@@ -1402,6 +1402,9 @@ def render_video_overlay(video_name, data):
             """, unsafe_allow_html=True)
             
             # 2. Position the functional Streamlit buttons over the shell
+            # Note: Using absolute positioning relative to the content container
+            # This requires the buttons to be rendered INSIDE the modal flow in Streamlit terms
+            
             # Close Button
             st.markdown('<div class="st-pos close-pos close-btn-in-header">', unsafe_allow_html=True)
             if st.button("✕", key="close_vid_overlay"):
