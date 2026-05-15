@@ -1036,14 +1036,12 @@ components.html(f"""
         }});
     }}
 
-    if (!window.parent.__movy_voice) {{
-        window.parent.__movy_voice = {{
-            recognition: null,
-            ttsEnabled: storage.getItem('movy_tts_enabled') === 'true',
-            lastRead: storage.getItem('movy_last_read') || ''
-        }};
-    }}
-    var vS = window.parent.__movy_voice;
+    // 4. Persistent Voice System (Self-healing architecture)
+    var vS = window.parent.__movy_voice = window.parent.__movy_voice || {{
+        recognition: null,
+        ttsEnabled: storage.getItem('movy_tts_enabled') === 'true',
+        lastRead: storage.getItem('movy_last_read') || ''
+    }};
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     var synth = window.speechSynthesis;
 
@@ -1052,30 +1050,23 @@ components.html(f"""
         storage.setItem('movy_tts_enabled', 'false');
     }}
 
-    function initVoice() {{
+    // Core functions attached to window.parent to survive iframe death
+    window.parent.__movy_initVoice = function() {{
         if (!SpeechRecognition) return;
+        if (vS.recognition) try {{ vS.recognition.abort(); }} catch(e) {{}}
         
-        // Force stop any existing instance
-        if (vS.recognition) {{
-            try {{ vS.recognition.onstart = null; vS.recognition.onend = null; vS.recognition.onerror = null; vS.recognition.onresult = null; vS.recognition.abort(); }} catch(e) {{}}
-        }}
-        
-        vS.recognition = new SpeechRecognition();
-        vS.recognition.continuous = false;
-        vS.recognition.interimResults = false;
-        vS.recognition.lang = 'en-US';
+        var rec = new SpeechRecognition();
+        rec.continuous = false; rec.interimResults = false; rec.lang = 'en-US';
 
-        vS.recognition.onstart = function() {{
-            console.log("Movy Mic: Active");
+        rec.onstart = function() {{
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.add('active');
             var ind = doc.getElementById('movy-listening-indicator');
             if (ind) ind.style.display = 'block';
         }};
 
-        vS.recognition.onresult = function(event) {{
+        rec.onresult = function(event) {{
             var text = event.results[0][0].transcript;
-            console.log("Movy Mic: Heard -> " + text);
             var textarea = doc.querySelector('.stChatInput textarea');
             if (!textarea) return;
             var ns = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
@@ -1088,25 +1079,16 @@ components.html(f"""
             }}, 150);
         }};
 
-        vS.recognition.onerror = function(e) {{
-            console.warn("Movy Mic Error:", e.error);
-            if (e.error === 'not-allowed') alert("Microphone access was denied. Please check your browser permissions.");
+        rec.onend = rec.onerror = function() {{
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
             var ind = doc.getElementById('movy-listening-indicator');
             if (ind) ind.style.display = 'none';
         }};
+        vS.recognition = rec;
+    }};
 
-        vS.recognition.onend = function() {{
-            console.log("Movy Mic: Stopped");
-            var mic = doc.getElementById('movy-mic-btn');
-            if (mic) mic.classList.remove('active');
-            var ind = doc.getElementById('movy-listening-indicator');
-            if (ind) ind.style.display = 'none';
-        }};
-    }}
-
-    function speak(text) {{
+    window.parent.__movy_speak = function(text) {{
         if (!vS.ttsEnabled || !synth) return;
         try {{
             synth.cancel(); 
@@ -1124,16 +1106,7 @@ components.html(f"""
             ut.pitch = 1.05; ut.rate = 0.95;
             synth.speak(ut);
         }} catch(e) {{}}
-    }}
-
-    if (!window.parent.__movy_primed) {{
-        var prime = function() {{
-            if (synth) synth.speak(new SpeechSynthesisUtterance(""));
-            window.parent.__movy_primed = true;
-            doc.removeEventListener('click', prime);
-        }};
-        doc.addEventListener('click', prime);
-    }}
+    }};
 
     function injectVoiceUI() {{
         var container = doc.querySelector('.stChatInput > div');
@@ -1144,6 +1117,7 @@ components.html(f"""
             if (container.contains(existing)) return;
             existing.remove();
         }}
+
         var ctrls = doc.createElement('div');
         ctrls.id = 'movy-voice-ctrls';
         ctrls.className = 'voice-controls';
@@ -1157,46 +1131,48 @@ components.html(f"""
             </button>
         `;
         container.insertBefore(ctrls, container.firstChild);
+
         doc.getElementById('movy-mic-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
             if (this.classList.contains('active')) {{
                 if (vS.recognition) vS.recognition.stop();
             }} else {{
-                initVoice();
-                try {{ vS.recognition.start(); }} catch(err) {{ console.warn("Mic start fail:", err); }}
+                window.parent.__movy_initVoice();
+                try {{ vS.recognition.start(); }} catch(err) {{}}
             }}
         }};
+
         doc.getElementById('movy-speaker-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
             vS.ttsEnabled = !vS.ttsEnabled;
             storage.setItem('movy_tts_enabled', vS.ttsEnabled);
             this.classList.toggle('speaker-on', vS.ttsEnabled);
-            if (vS.ttsEnabled) speak("Voice output enabled.");
+            if (vS.ttsEnabled) window.parent.__movy_speak("Voice output enabled.");
             else synth.cancel();
         }};
     }}
 
-    function readNewMessages() {{
+    window.parent.__movy_readNewMessages = function() {{
         var bubbles = doc.querySelectorAll('.bubble.movy');
         if (bubbles.length === 0) return;
         var text = bubbles[bubbles.length - 1].innerText;
         if (text !== vS.lastRead) {{
             vS.lastRead = text;
             storage.setItem('movy_last_read', text);
-            speak(text);
+            window.parent.__movy_speak(text);
         }}
-    }}
+    }};
 
     applyVideoStates();
     injectVoiceUI();
-    if (!window.parent.__movy_observer) {{
-        window.parent.__movy_observer = new MutationObserver(function() {{
-            applyVideoStates();
-            injectVoiceUI();
-            readNewMessages();
-        }});
-        window.parent.__movy_observer.observe(doc.body, {{childList: true, subtree: true}});
-    }}
+    if (window.parent.__movy_obs) window.parent.__movy_obs.disconnect();
+    window.parent.__movy_obs = new MutationObserver(function() {{
+        applyVideoStates();
+        injectVoiceUI();
+        if (window.parent.__movy_readNewMessages) window.parent.__movy_readNewMessages();
+    }});
+    window.parent.__movy_obs.observe(doc.body, {{childList: true, subtree: true}});
+    
     setInterval(injectVoiceUI, 1000);
 }})();
 </script>
