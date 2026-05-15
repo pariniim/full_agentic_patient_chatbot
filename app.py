@@ -1054,21 +1054,28 @@ components.html(f"""
 
     function initVoice() {{
         if (!SpeechRecognition) return;
-        if (vS.recognition) try {{ vS.recognition.abort(); }} catch(e) {{}}
-        var rec = new SpeechRecognition();
-        rec.continuous = false;
-        rec.interimResults = false;
-        rec.lang = 'en-US';
+        
+        // Force stop any existing instance
+        if (vS.recognition) {{
+            try {{ vS.recognition.onstart = null; vS.recognition.onend = null; vS.recognition.onerror = null; vS.recognition.onresult = null; vS.recognition.abort(); }} catch(e) {{}}
+        }}
+        
+        vS.recognition = new SpeechRecognition();
+        vS.recognition.continuous = false;
+        vS.recognition.interimResults = false;
+        vS.recognition.lang = 'en-US';
 
-        rec.onstart = function() {{
+        vS.recognition.onstart = function() {{
+            console.log("Movy Mic: Active");
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.add('active');
             var ind = doc.getElementById('movy-listening-indicator');
             if (ind) ind.style.display = 'block';
         }};
 
-        rec.onresult = function(event) {{
+        vS.recognition.onresult = function(event) {{
             var text = event.results[0][0].transcript;
+            console.log("Movy Mic: Heard -> " + text);
             var textarea = doc.querySelector('.stChatInput textarea');
             if (!textarea) return;
             var ns = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, "value").set;
@@ -1081,20 +1088,22 @@ components.html(f"""
             }}, 150);
         }};
 
-        rec.onerror = function() {{
+        vS.recognition.onerror = function(e) {{
+            console.warn("Movy Mic Error:", e.error);
+            if (e.error === 'not-allowed') alert("Microphone access was denied. Please check your browser permissions.");
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
             var ind = doc.getElementById('movy-listening-indicator');
             if (ind) ind.style.display = 'none';
         }};
 
-        rec.onend = function() {{
+        vS.recognition.onend = function() {{
+            console.log("Movy Mic: Stopped");
             var mic = doc.getElementById('movy-mic-btn');
             if (mic) mic.classList.remove('active');
             var ind = doc.getElementById('movy-listening-indicator');
             if (ind) ind.style.display = 'none';
         }};
-        vS.recognition = rec;
     }}
 
     function speak(text) {{
@@ -1144,8 +1153,12 @@ components.html(f"""
         container.insertBefore(ctrls, container.firstChild);
         doc.getElementById('movy-mic-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
-            initVoice();
-            if (vS.recognition) try {{ vS.recognition.start(); }} catch(err) {{}}
+            if (this.classList.contains('active')) {{
+                if (vS.recognition) vS.recognition.stop();
+            }} else {{
+                initVoice();
+                try {{ vS.recognition.start(); }} catch(err) {{ console.warn("Mic start fail:", err); }}
+            }}
         }};
         doc.getElementById('movy-speaker-btn').onclick = function(e) {{
             e.preventDefault(); e.stopPropagation();
