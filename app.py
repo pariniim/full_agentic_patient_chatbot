@@ -1053,9 +1053,24 @@ def _video_path(exercise_name: str) -> Path:
 
 # ── LLM call ─────────────────────────────────────────────────────────────────
 def call_llm(history: list, temp: float = 0.7) -> str:
+    # Inject current state context to prevent the LLM from regressing to earlier phases
+    current_phase = st.session_state.get("phase", "unknown")
+    current_step = st.session_state.get("in_session_step", "unknown")
+    
+    state_injection = {
+        "role": "system", 
+        "content": f"CRITICAL STATE NOTIFICATION: You are currently in Phase '{current_phase}' (step: '{current_step}'). You must strictly follow the instructions for THIS phase. Do NOT regress to Phase 1 (Onboarding) or ask for the patient's name if you are in a later phase. Respond directly to the user's latest input according to your current phase rules."
+    }
+    
+    # Prepend the state injection right after the main system prompt
+    if len(history) > 0 and history[0]["role"] == "system":
+        llm_history = [history[0], state_injection] + history[1:]
+    else:
+        llm_history = [state_injection] + history
+        
     r = client.chat.completions.create(
         model="openai/gpt-4o",
-        messages=history,
+        messages=llm_history,
         temperature=temp,
     )
     return r.choices[0].message.content
