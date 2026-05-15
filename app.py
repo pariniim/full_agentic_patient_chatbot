@@ -564,23 +564,26 @@ div.stButton {
     position: relative;
     z-index: 501;
 }
-/* Pinning native buttons to the modal - Centered CSS logic */
+/* Pinning native buttons to the modal - Absolute Center-Translate Logic */
 .st-close-pin {
     position: fixed !important;
-    top: 12vh !important;
-    left: calc(50% + 175px) !important;
+    top: 15vh !important;
+    left: 50% !important;
+    transform: translateX(180px) !important;
     z-index: 2147483647 !important;
+    pointer-events: auto !important;
 }
 .st-close-pin button {
     border-radius: 50% !important;
-    width: 44px !important;
-    height: 44px !important;
+    width: 48px !important;
+    height: 48px !important;
     padding: 0 !important;
     border: 1px solid #EAECEF !important;
     background: white !important;
     color: #000000 !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-    min-width: 44px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+    min-width: 48px !important;
+    pointer-events: auto !important;
 }
 .st-start-pin {
     position: fixed !important;
@@ -588,17 +591,19 @@ div.stButton {
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
     z-index: 2147483647 !important;
+    pointer-events: auto !important;
 }
 .st-start-pin button {
     background: #2B5CD9 !important;
     color: #FFFFFF !important;
     border: none !important;
-    border-radius: 24px !important;
-    padding: 0.8rem 2.8rem !important;
+    border-radius: 32px !important;
+    padding: 1rem 3.5rem !important;
     font-weight: 600 !important;
-    font-size: 1.05rem !important;
-    box-shadow: 0 8px 20px rgba(43, 92, 217, 0.3) !important;
+    font-size: 1.1rem !important;
+    box-shadow: 0 10px 25px rgba(43, 92, 217, 0.4) !important;
     width: auto !important;
+    pointer-events: auto !important;
 }
 .st-pos {
     position: fixed !important;
@@ -606,6 +611,10 @@ div.stButton {
     left: 50% !important;
     bottom: 8vh !important;
     transform: translateX(-50%) !important;
+    pointer-events: auto !important;
+}
+.st-pos button {
+    pointer-events: auto !important;
 }
 .st-start-pin button:hover {
     background: #1e4bb3 !important;
