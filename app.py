@@ -390,28 +390,44 @@ section[data-testid="stSidebar"]{display:none;}
 
 .splash-fullscreen {{
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
     background: #FAF6F2;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    padding: 2rem;
-    box-sizing: border-box;
 }}
 
 .splash-content {{
-    max-width: 480px;
-    width: 100%;
-    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0; /* No gap; handled by margins */
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    gap: 0;
+}}
+
+.splash-native-btn {{
+    background: #2B5CD9 !important;
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.8rem 2.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1.5rem;
+    box-shadow: 0 4px 12px rgba(43, 92, 217, 0.25);
+}}
+
+.splash-native-btn:hover {{
+    background: #1e4bb3 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(43, 92, 217, 0.35);
 }}
 
 </style>
@@ -990,8 +1006,20 @@ if st.session_state.show_splash:
             <div class="splash-video-container" style="margin-bottom: 0;">
                 {media_html}
             </div>
-            <h2 style="color:#2B5CD9; margin-top:0.25rem; margin-bottom:0; font-size:2.4rem;">{conclude}</h2>
-            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.15rem; margin-bottom:1.5rem;">{introduce}</p>
+            <h2 style="color:#2B5CD9; margin-top:0.2rem; margin-bottom:0; font-size:2.6rem; font-weight:600;">{conclude}</h2>
+            <p style="color:#5A6480; font-size:1.3rem; margin-top:0.1rem; margin-bottom:2rem;">{introduce}</p>
+        </div>
+    </div>
+    <style>
+        /* Force the specific Streamlit button to overlay or appear centered */
+        div.stButton > button[key="splash_btn"] {{
+            position: fixed;
+            top: 70%; /* Adjusted to be perfectly under the text */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+        }}
+    </style>
     """, unsafe_allow_html=True)
 
     btn_labels = {
@@ -1002,14 +1030,11 @@ if st.session_state.show_splash:
         "pt_summary": "View Summary  →"
     }
     lbl = btn_labels.get(target, "Continue  →")
-    # Centered button inside the fullscreen flexbox
-    if st.button(lbl, key="splash_btn", use_container_width=False):
+    if st.button(lbl, key="splash_btn"):
         st.session_state.show_splash = False
         st.session_state.messages = []
         st.session_state.phase = target
         st.rerun()
-    
-    st.markdown("</div></div>", unsafe_allow_html=True)
     st.stop()
 else:
     render_header()
