@@ -1022,6 +1022,13 @@ def call_llm(history: list, temp: float = 0.7) -> str:
     
     # Prepend the state injection right after the main system prompt
     if len(history) > 0 and history[0]["role"] == "system":
+        _v1, _v2 = st.session_state.get("selected_videos", ("Ex1", "Ex2"))
+        history[0]["content"] = (
+            MOVY_UNIFIED_PROMPT
+            + f"\n\n[SESSION VIDEOS]\nVideo A: {_v1}\nVideo B: {_v2}\n"
+            + "These are the internal filenames — NEVER speak or emit them.\n"
+            + "Refer to them only as 'Exercise 1' and 'Exercise 2' in all messages and signals."
+        )
         llm_history = [history[0], state_injection] + history[1:]
     else:
         llm_history = [state_injection] + history
