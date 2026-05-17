@@ -327,18 +327,19 @@ section[data-testid="stSidebar"]{display:none;}
 
 .listening-indicator {
     position: absolute;
-    top: -30px;
+    top: -32px;
     left: 50%;
     transform: translateX(-50%);
-    background: #2B5CD9;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 12px;
+    background: #1a1d27;
+    color: #FFFFFF;
+    border: 1px solid #000000;
+    padding: 4px 14px;
+    border-radius: 14px;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
     display: none;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(43,92,217,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 
@@ -760,9 +761,11 @@ UI behaviour:
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
-Step B: When the user marks Exercise 1 as complete:
-Address the user by their preferred_name and ask the mid-session check-in question.
-Example: "Great job on completing that exercise, [preferred_name]! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
+Step B: When the user finishes or skips Exercise 1:
+Note whether they said they "finished" or "skipped" it.
+Address the user by their preferred_name, explicitly acknowledge whether they completed or skipped the exercise, and ask the mid-session check-in question.
+Example (finished): "Great job on completing that exercise, [preferred_name]! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
+Example (skipped): "No worries about skipping that one, [preferred_name]. Let's just do a quick check-in. How are you feeling right now? Any pain or discomfort?"
 
 ⚠ CRITICAL: Do NOT emit any signal here. Wait for the user to reply.
 
@@ -814,10 +817,12 @@ UI behaviour:
 - Show a “Mark Exercise as Complete” button.
 Wait until the user presses the completion button.
 
-Step D: When the user marks Exercise 2 as complete:
-Congratulate the user and seamlessly begin the post-session check-in.
-Say:
-"That's your session done, [preferred_name]. Great work — you're on track. Let's do a quick check-in. Four questions and you're done."
+Step D: When the user finishes or skips Exercise 2:
+Note whether they finished or skipped it.
+Acknowledge this, congratulate them on finishing the session, and seamlessly begin the post-session check-in.
+Say something like:
+(If finished): "That's your session done, [preferred_name]. Great work — you're on track. Let's do a quick check-in. Four questions and you're done."
+(If skipped): "That's your session done, [preferred_name]. It's completely fine that you skipped that one. Let's do a quick check-in. Four questions and you're done."
 Then ask Q1 straight away.
 
 Then emit:
@@ -1338,20 +1343,34 @@ def render_video_overlay(video_name, data):
         
         # Action Bar
         st.divider()
-        col1, col2, col3 = st.columns([1, 0.2, 1.5])
+        col1, col2, col3 = st.columns([1.5, 0.2, 1])
         
         with col1:
-            if st.button("← Back to Chat", use_container_width=True):
-                st.session_state.show_video_overlay = False
-                st.rerun()
-                
-        with col3:
             if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
                 st.session_state.video_completed = True
                 st.session_state.show_video_overlay = False
                 
                 # User bubble trigger
                 _trigger = "I have finished the exercise."
+                st.session_state.full_history.append({"role": "user", "content": _trigger})
+                st.session_state.messages.append({"role": "user", "content": _trigger})
+                
+                # Force the LLM to reply automatically to this trigger
+                st.session_state.force_llm_reply = True
+                
+                if st.session_state.get("current_video") == st.session_state.selected_videos[1]:
+                    st.session_state.in_session_step = "ex2_completed"
+                else:
+                    st.session_state.in_session_step = "ex1_completed"
+                st.rerun()
+                
+        with col3:
+            if st.button("Skip Exercise ⏭", use_container_width=True):
+                st.session_state.video_completed = False
+                st.session_state.show_video_overlay = False
+                
+                # User bubble trigger
+                _trigger = "I have skipped this exercise."
                 st.session_state.full_history.append({"role": "user", "content": _trigger})
                 st.session_state.messages.append({"role": "user", "content": _trigger})
                 
