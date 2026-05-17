@@ -979,10 +979,12 @@ def load_video_b64(n: int) -> str | None:
 
 # All available exercise video files
 VIDEO_FILES = [
-    "Ex01_square.mp4",
-    "Ex02_square.mp4",
-    "Ex03_square.mp4",
-    "Ex04_square.mp4",
+    "ex_vid_01.mp4",
+    "ex_vid_02.mp4",
+    "ex_vid_03.mp4",
+    "ex_vid_04.mp4",
+    "ex_vid_05.mp4",
+    "ex_vid_06.mp4",
 ]
 
 def _video_path(exercise_name: str) -> Path:
@@ -1107,7 +1109,7 @@ def render_video_widget(n: int):
 
     def _show_video():
         if vid_path.exists():
-            st.video(str(vid_path))
+            st.video(str(vid_path), muted=True)
         else:
             st.warning(f"Video not found: {vid_path}")
 
@@ -1266,7 +1268,7 @@ Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2re
             st.session_state.phase = "in_session"
             st.session_state.in_session_step = "ex1_ready"
             st.session_state.show_video_overlay = True
-            st.session_state.current_video = "Ex01_square.mp4"
+            st.session_state.current_video = st.session_state.selected_videos[0]
             st.session_state.video_started = False
             st.session_state.video_completed = False
             # Pass data for the overlay
@@ -1356,7 +1358,7 @@ def render_video_overlay(video_name, data):
                 # Force the LLM to reply automatically to this trigger
                 st.session_state.force_llm_reply = True
                 
-                if "Ex02" in st.session_state.get("current_video", ""):
+                if st.session_state.get("current_video") == st.session_state.selected_videos[1]:
                     st.session_state.in_session_step = "ex2_completed"
                 else:
                     st.session_state.in_session_step = "ex1_completed"
@@ -1909,7 +1911,7 @@ if (
             st.session_state.in_session_step = "ex2_ready"
             
         st.session_state.show_video_overlay = True
-        st.session_state.current_video = "Ex02_square.mp4"
+        st.session_state.current_video = st.session_state.selected_videos[1]
         st.session_state.video_started = False
         st.session_state.video_completed = False
         st.session_state.overlay_data = {
