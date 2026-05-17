@@ -1416,15 +1416,23 @@ if st.session_state.show_splash:
                 png_b64 = base64.b64encode(p_png.read_bytes()).decode()
                 media_html = f'<img src="data:image/png;base64,{png_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy Logo" />'
     else:
-        video_path = "assets/video/Parlata.mp4" if target == "programme_selection" else "assets/video/Ilde.mp4"
         import base64
-        try:
-            with open(video_path, "rb") as f:
-                v_b64 = base64.b64encode(f.read()).decode()
-                # Ensure rotation and scaling for the mp4 assets
-                media_html = f'<video class="splash-video" autoplay loop muted playsinline style="transform: rotate(90deg); width:280px; height:auto;"><source src="data:video/mp4;base64,{v_b64}" type="video/mp4"></video>'
-        except:
-            media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
+        if target == "programme_selection":
+            try:
+                with open("assets/images/movy.png", "rb") as f:
+                    img_b64 = base64.b64encode(f.read()).decode()
+                    media_html = f'<img src="data:image/png;base64,{img_b64}" style="width:280px; height:auto; display:block; margin:0 auto;" alt="Movy" />'
+            except:
+                media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" style="width:280px; height:auto; display:block; margin:0 auto;" />'
+        else:
+            video_path = "assets/video/Ilde.mp4"
+            try:
+                with open(video_path, "rb") as f:
+                    v_b64 = base64.b64encode(f.read()).decode()
+                    # Ensure rotation and scaling for the mp4 assets
+                    media_html = f'<video class="splash-video" autoplay loop muted playsinline style="transform: rotate(90deg); width:280px; height:auto;"><source src="data:video/mp4;base64,{v_b64}" type="video/mp4"></video>'
+            except:
+                media_html = '<img src="https://via.placeholder.com/280?text=Movy+Idle" class="splash-video" />'
 
     # Use a background overlay and standard columns for reliable button rendering
     st.markdown('<div class="splash-bg"></div>', unsafe_allow_html=True)
