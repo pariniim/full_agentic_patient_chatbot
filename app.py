@@ -594,7 +594,7 @@ st.markdown("""
 }
 
 .splash-v-center {
-    margin-top: -1vh !important;
+    margin-top: -30vh !important;
     text-align: center;
     width: 100%;
 }
