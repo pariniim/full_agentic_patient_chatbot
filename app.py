@@ -1203,8 +1203,6 @@ def render_video_widget(n: int):
 
 
 def render_appointment_summary():
-    render_header()
-    
     # Temporarily widen the container for the summary view
     st.markdown("""
         <style>
