@@ -802,13 +802,7 @@ CRITICAL RULE: Once the patient has answered the final question (Reflection), yo
 Replace all values with actual collected data. flags is a list of clinical concerns.
 
 ══════════════════════════════════════
-PHASE TRANSITION — SHOW SPLASH SCREEN
-══════════════════════════════════════
-Before beginning Phase 5, emit:
-<MOVY_SIGNAL>{{"action":"show_splash","phase":"pt_summary"}}</MOVY_SIGNAL>
-
-══════════════════════════════════════
-PHASE 5 — PT SUMMARY
+PHASE 4 CONCLUSION
 ══════════════════════════════════════
 Immediately after emitting generate_summary, write a clinical snapshot paragraph
 for the physiotherapist (third person, under 30 seconds to read), covering:
@@ -817,10 +811,9 @@ pain flags, adherence, difficulty, confidence, overall experience,
 🔵 NEW — include next_appointment_date.
 
 Then say warmly to the patient:
-"All done. Your physiotherapist will have a full summary ready for your next appointment. Well done today, [preferred_name]."
+"All done. Your physiotherapist will have a full summary ready for your next appointment. Well done today, [preferred_name]!"
 
-Then say:
-"Now you have just completed the whole Movy experience. You can return to the onboarding whenever you're ready."
+This completes the Movy experience.
 
 ══════════════════════════════════════
 BEHAVIOUR RULES
@@ -891,11 +884,12 @@ def process_signal(sig: dict):
         if "session_end_time" not in st.session_state:
             st.session_state.session_end_time = time.time()
     elif a == "generate_summary":
-        st.session_state.phase = "pt_summary"
         st.session_state.patient_data["summary"] = sig.get("summary", {})
     elif a == "show_splash":
-        st.session_state.show_splash = True
-        st.session_state.splash_target_phase = sig.get("phase", "onboarding")
+        p = sig.get("phase", "onboarding")
+        if p != "pt_summary":
+            st.session_state.show_splash = True
+            st.session_state.splash_target_phase = p
 
 
 # ── Logo loader (PNG avatar for chat bubbles) ────────────────────────────────
@@ -1020,7 +1014,7 @@ if "current_video" not in st.session_state:
     st.session_state.current_video = None
 
 # ── Proactive opening ─────────────────────────────────────────────────────────
-if not st.session_state.messages and not st.session_state.show_splash and st.session_state.phase not in ["appointment_summary", "pt_summary", "programme_selection"]:
+if not st.session_state.messages and not st.session_state.show_splash and st.session_state.phase not in ["appointment_summary", "programme_selection"]:
     _h = [*st.session_state.full_history,
           {"role": "user", "content": "Please begin the conversation now."}]
     _reply = call_llm(_h)
@@ -1033,24 +1027,11 @@ if not st.session_state.messages and not st.session_state.show_splash and st.ses
 
 
 # ── Phase progress indicator ──────────────────────────────────────────────────
-PHASES = ["onboarding", "programme_selection", "in_session", "post_checkin", "pt_summary"]
-PHASE_LABELS = ["Onboarding", "Programme", "Session", "Check-In", "Summary"]
+PHASES = ["onboarding", "programme_selection", "in_session", "post_checkin"]
+PHASE_LABELS = ["Onboarding", "Appointment", "Exercise Session", "Check-In"]
 
 def render_header():
-    st.markdown("""
-    <style>
-    div[data-testid='stVerticalBlock'] > div:first-child {
-        position: sticky;
-        top: 0;
-        z-index: 999;
-        background: white;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #f0f2f6;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
+    st.markdown('<div class="nav-marker"></div>', unsafe_allow_html=True)
     cols = st.columns(len(PHASES))
     for i, (p_id, p_label) in enumerate(zip(PHASES, PHASE_LABELS)):
         with cols[i]:
@@ -1059,6 +1040,26 @@ def render_header():
                 st.session_state.phase = p_id
                 st.session_state.show_splash = False
                 st.rerun()
+
+    st.markdown("""
+    <style>
+    .nav-marker { display: none; }
+    
+    /* Target the columns container immediately following the marker */
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background: #FAF6F2; /* matches app background */
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .stButton > button {
+        border-radius: 20px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     st.divider()
 
 # \u2500\u2500 Video widget \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1356,8 +1357,7 @@ if st.session_state.show_splash:
             "onboarding": "Start Onboarding  →",
             "programme_selection": "Appointment  →",
             "in_session": "Begin Session  →",
-            "post_session": "Start Check-In  →",
-            "pt_summary": "View Summary  →"
+            "post_session": "Start Check-In  →"
         }
         lbl = btn_labels.get(target, "Continue  →")
         
@@ -1458,47 +1458,14 @@ if st.session_state.phase == "in_session":
     # if step == "ex2_ready" or ex2_s in ("playing", "paused", "complete"):
     #     render_video_widget(2)
 
-# ── PT Summary card ───────────────────────────────────────────────────────────
-if st.session_state.phase == "pt_summary":
-    summary = st.session_state.patient_data.get("summary", {})
-    if summary:
-        flags = summary.get("flags", [])
-        flag_html = "".join(f'<span class="flag-pill">⚠ {f}</span>' for f in flags) if flags else '<span style="color:#6b7280">None</span>'
-        fields = [
-            ("Adherence", summary.get("adherence", "—")),
-            ("Confidence", summary.get("confidence", "—")),
-            ("Difficulty", summary.get("difficulty", "—")),
-            ("Pain score", summary.get("pain_score", "—")),
-            ("Fatigue", summary.get("fatigue", "—")),
-            ("Emotional tone", summary.get("emotional_tone", "—")),
-            ("Overall experience", summary.get("overall_experience", "—")),
-            ("Reflection", summary.get("reflection", "—")),
-        ]
-        rows = "".join(f'<div class="summary-field"><span class="summary-key">{k}</span><span class="summary-val">{v}</span></div>' for k, v in fields)
-        st.markdown(f"""
-        <div class="summary-card">
-          <h4>📋 PT Summary</h4>
-          <div class="summary-field">
-            <span class="summary-key">Next Appointment</span>
-            <span class="summary-val">{st.session_state.patient_data.get("next_appointment","—")}</span>
-          </div>
-          <div class="summary-field">
-            <span class="summary-key">Mid-session</span>
-            <span class="summary-val">{summary.get("mid_session_memory","—")}</span>
-          </div>
-          {rows}
-          <div class="summary-field">
-            <span class="summary-key">Clinical flags</span>
-            <span class="summary-val">{flag_html}</span>
-          </div>
-        </div>""", unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        _, end_col, _ = st.columns([1, 2, 1])
-        with end_col:
-            if st.button("End current session", type="primary", use_container_width=True):
-                st.session_state.clear()
-                st.rerun()
+# ── End session button in Check-In phase when complete ────────────────────────
+if st.session_state.phase == "post_checkin" and "summary" in st.session_state.patient_data:
+    st.markdown("<br>", unsafe_allow_html=True)
+    _, end_col, _ = st.columns([1, 2, 1])
+    with end_col:
+        if st.button("End current session", type="primary", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
 
 # ── JS helpers: placeholder colour + scroll + video play/pause control ─────────
 _is_splash  = "true"  if st.session_state.show_splash else "false"
