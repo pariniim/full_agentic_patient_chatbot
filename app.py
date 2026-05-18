@@ -985,8 +985,9 @@ def call_llm(history: list, temp: float = 0.7) -> str:
 if "show_splash" not in st.session_state:
     st.session_state.show_splash = True
 if "phase" not in st.session_state:
-
     st.session_state.phase = "onboarding"
+if "onboarding_completed" not in st.session_state:
+    st.session_state.onboarding_completed = False
 if "patient_data" not in st.session_state:
     st.session_state.patient_data = {}
 if "messages" not in st.session_state:
@@ -1033,10 +1034,18 @@ PHASE_LABELS = ["Onboarding", "Appointment", "Exercise Session", "Check-In"]
 def render_header():
     st.markdown('<div class="nav-marker"></div>', unsafe_allow_html=True)
     cols = st.columns(len(PHASES))
+    
+    # Mark onboarding completed if the user has transitioned to any subsequent phase
+    if st.session_state.phase != "onboarding":
+        st.session_state.onboarding_completed = True
+    onboarding_completed = st.session_state.get("onboarding_completed", False)
+    
     for i, (p_id, p_label) in enumerate(zip(PHASES, PHASE_LABELS)):
         with cols[i]:
             btn_type = "primary" if st.session_state.phase == p_id else "secondary"
-            if st.button(p_label, key=f"nav_{p_id}", use_container_width=True, type=btn_type):
+            is_disabled = (p_id != "onboarding") and not onboarding_completed
+            
+            if st.button(p_label, key=f"nav_{p_id}", use_container_width=True, type=btn_type, disabled=is_disabled):
                 st.session_state.phase = p_id
                 st.session_state.show_splash = False
                 st.rerun()
@@ -1055,8 +1064,46 @@ def render_header():
         padding-bottom: 0.5rem;
     }
     
-    .stButton > button {
+    /* Header buttons overrides */
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div button {
         border-radius: 20px !important;
+        white-space: nowrap !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        padding: 0.5rem 1rem !important;
+        height: auto !important;
+        min-height: unset !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    /* Primary / Selected */
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div button[kind="primary"] {
+        background-color: #2B5CD9 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(43, 92, 217, 0.2) !important;
+    }
+    
+    /* Secondary / Unlocked but inactive */
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div button[kind="secondary"] {
+        background-color: #FFFFFF !important;
+        color: #2B5CD9 !important;
+        border: 1px solid rgba(43, 92, 217, 0.3) !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div button[kind="secondary"]:hover {
+        background-color: rgba(43, 92, 217, 0.05) !important;
+        border-color: #2B5CD9 !important;
+    }
+
+    /* Disabled / Locked */
+    div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div button:disabled {
+        background-color: #E6E4E2 !important;
+        color: #A39E9A !important;
+        border: 1px solid #D1CFCB !important;
+        box-shadow: none !important;
+        cursor: not-allowed !important;
+        opacity: 0.6 !important;
     }
     </style>
     """, unsafe_allow_html=True)
