@@ -755,76 +755,18 @@ Movy is PROACTIVE. Once the session starts, immediately introduce Exercise 1.
 
 Step A: Introduce Exercise 1 warmly and encouragingly.
 Say:
-"Let's start with your first exercise. Follow the video and take your time — I'm right here if you need anything."
+"Let's start with your exercise. Follow the video and take your time — I'm right here if you need anything."
 
 Then emit:
 <MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":1}}</MOVY_SIGNAL>
 
 UI behaviour:
 - Play “Exercise 1” video.
-- Automatically start ambient music (assets/audio/ambient.mp3).
-- Show a “Mark Exercise as Complete” button.
-Wait until the user presses the completion button.
+- Wait until the user presses the "Start Check-In" button.
 
-Step B: When the user responds to the first exercise:
-CRITICAL RULE: You MUST read the user's latest message to see if they finished or skipped the exercise.
-- If the user's message says "I have finished the exercise.", praise them for completing it. Example: "Great job on completing that exercise, [preferred_name]! Before we move on, let's do a quick check-in. How are you feeling? Did you experience any pain or discomfort?"
-- If the user's message says "I have skipped this exercise.", you MUST NOT praise them for completing it. Acknowledge the skip normally. Example: "No worries about skipping that one, [preferred_name]. Let's just do a quick check-in. How are you feeling right now? Any pain or discomfort?"
-
-⚠ CRITICAL: Do NOT emit any signal here. Wait for the user to reply.
-
-Step B2: When the user replies to the check-in question:
-Analyze their response deeply for emotional cues (tone, fatigue, pain, enthusiasm).
-Classify: energetic / tired / pain / unsure / positive / no_response.
-
-Adapt your reply with high empathy:
-- If they sound tired: "I hear you, it's okay to take a breather. You're doing great."
-- If they sound energetic: "Love that energy! You're crushing it."
-- If they mention any pain: "I'm sorry to hear that. Let's be careful."
-
-If the response is energetic / positive / tired / unsure / no_response:
-  - Acknowledge their feeling warmly.
-  - Then emit:
-    <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
-
-If the response mentions pain (any pain at all):
-  - Do NOT emit checkin_resolved yet.
-  - Ask: "On a scale of 1 to 10, how would you rate that pain right now?"
-  - Then emit:
-    <MOVY_SIGNAL>{{"action":"checkin_pain_followup"}}</MOVY_SIGNAL>
-
-Step B3: When the user replies with a pain rating:
-  - If pain < 8:
-    - "Thanks for letting me know. We'll keep an eye on it. Let's continue, but please go at a pace that feels safe for you."
-    - Then emit:
-      <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":true}}</MOVY_SIGNAL>
-  - If pain ≥ 8 (severe):
-    - "That sounds quite intense. We should definitely stop here and rest. I'll make sure your physiotherapist knows so you can discuss it together. Take care of yourself."
-    - Then emit:
-      <MOVY_SIGNAL>{{"action":"checkin_resolved","proceed":false}}</MOVY_SIGNAL>
-
-⚠ CRITICAL: After emitting checkin_resolved, DO NOT emit any other signal and DO NOT mention
-Exercise 2 yet. The UI will show a 'Continue to Exercise 2' button only if proceed is true.
-
-Step C: The user taps 'Continue to Exercise 2'.
-The UI sends the trigger: "I am ready to continue to Exercise 2."
-Only then, introduce Exercise 2 warmly.
-Say:
-"Great. Let's move on to your second exercise."
-
-Then emit:
-<MOVY_SIGNAL>{{"action":"introduce_exercise","exercise":2}}</MOVY_SIGNAL>
-
-UI behaviour:
-- Play “Exercise 2” video.
-- Automatically start ambient music (assets/audio/ambient.mp3).
-- Show a “Mark Exercise as Complete” button.
-Wait until the user presses the completion button.
-
-Step D: When the user responds to the second exercise:
-CRITICAL RULE: You MUST read the user's latest message to see if they finished or skipped the exercise.
-- If the user's message says "I have finished the exercise.", congratulate them on finishing the session. Say something like: "That's your session done, [preferred_name]. Great work — you're on track. Let's do a quick check-in. A few quick questions and you're done."
-- If the user's message says "I have skipped this exercise.", you MUST NOT praise them for completing it. Say something like: "That's your session done, [preferred_name]. It's completely fine that you skipped that one. Let's do a quick check-in. A few quick questions and you're done."
+Step B: When the user presses the "Start Check-In" button:
+The UI will send the hidden trigger: "I am ready for the check-in."
+Congratulate the user on finishing the session. Say something like: "That's your session done, [preferred_name]. Great work — you're on track. Let's do a quick check-in. A few quick questions and you're done."
 Then ask the first check-in question straight away.
 
 Then emit:
@@ -1027,12 +969,12 @@ def call_llm(history: list, temp: float = 0.7) -> str:
     
     # Prepend the state injection right after the main system prompt
     if len(history) > 0 and history[0]["role"] == "system":
-        _v1, _v2 = st.session_state.get("selected_videos", ("Ex1", "Ex2"))
+        _v1 = st.session_state.get("selected_videos", ["Ex1"])[0]
         history[0]["content"] = (
             MOVY_UNIFIED_PROMPT
-            + f"\n\n[SESSION VIDEOS]\nVideo A: {_v1}\nVideo B: {_v2}\n"
-            + "These are the internal filenames — NEVER speak or emit them.\n"
-            + "Refer to them only as 'Exercise 1' and 'Exercise 2' in all messages and signals."
+            + f"\n\n[SESSION VIDEO]\nVideo: {_v1}\n"
+            + "This is the internal filename — NEVER speak or emit it.\n"
+            + "Refer to it only as 'your exercise' or 'Exercise 1' in all messages and signals."
         )
         llm_history = [history[0], state_injection] + history[1:]
     else:
@@ -1060,12 +1002,12 @@ if "selected_videos" not in st.session_state:
     st.session_state.selected_videos = random.sample(VIDEO_FILES, 2)
 
 if "full_history" not in st.session_state:
-    _v1, _v2 = st.session_state.selected_videos
+    _v1 = st.session_state.selected_videos[0]
     _session_prompt = (
         MOVY_UNIFIED_PROMPT
-        + f"\n\n[SESSION VIDEOS]\nVideo A: {_v1}\nVideo B: {_v2}\n"
-        + "These are the internal filenames — NEVER speak or emit them.\n"
-        + "Refer to them only as 'Exercise 1' and 'Exercise 2' in all messages and signals."
+        + f"\n\n[SESSION VIDEO]\nVideo: {_v1}\n"
+        + "This is the internal filename — NEVER speak or emit it.\n"
+        + "Refer to it only as 'your exercise' or 'Exercise 1' in all messages and signals."
     )
     st.session_state.full_history = [{"role": "system", "content": _session_prompt}]
 if "in_session_step" not in st.session_state:
@@ -1095,23 +1037,29 @@ PHASES = ["onboarding", "programme_selection", "in_session", "post_checkin", "pt
 PHASE_LABELS = ["Onboarding", "Programme", "Session", "Check-In", "Summary"]
 
 def render_header():
-    svg_b64 = load_splash_svg()
-    media_html = ""
-    if svg_b64:
-        media_html = f'<img src="data:image/svg+xml;base64,{svg_b64}" style="width:130px; height:auto; display:block;" alt="Movy Logo" />'
-    else:
-        p_png = Path("assets/images/movy_logo1.png")
-        if p_png.exists():
-            png_b64 = base64.b64encode(p_png.read_bytes()).decode()
-            media_html = f'<img src="data:image/png;base64,{png_b64}" style="width:130px; height:auto; display:block;" alt="Movy Logo" />'
-    
-    st.markdown(f"""
-    <div class="sticky-header">
-      <div class="movy-header" style="padding:0; margin:0;">
-        {media_html}
-      </div>
-    </div>
+    st.markdown("""
+    <style>
+    div[data-testid='stVerticalBlock'] > div:first-child {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background: white;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #f0f2f6;
+    }
+    </style>
     """, unsafe_allow_html=True)
+    
+    cols = st.columns(len(PHASES))
+    for i, (p_id, p_label) in enumerate(zip(PHASES, PHASE_LABELS)):
+        with cols[i]:
+            btn_type = "primary" if st.session_state.phase == p_id else "secondary"
+            if st.button(p_label, key=f"nav_{p_id}", use_container_width=True, type=btn_type):
+                st.session_state.phase = p_id
+                st.session_state.show_splash = False
+                st.rerun()
+    st.divider()
 
 # \u2500\u2500 Video widget \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 def render_video_widget(n: int):
@@ -1229,52 +1177,11 @@ def render_appointment_summary():
             st.markdown(f"""
                 <div class="summary-header-card">
                     <img src="data:image/png;base64,{b64}" class="summary-header-img">
-                    <h2 style="font-size:1.6rem; color:#1a1d27;">You finished your appointment and Dr Smith has completed the program configuration.</h2>
+                    <h2 style="font-size:1.6rem; color:#1a1d27;">You finished your appointment and Dr Smith has completed the program configuration. I have created your exercise program.</h2>
                 </div>
             """, unsafe_allow_html=True)
     except:
-        st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration.</h2>', unsafe_allow_html=True)
-    
-    # Remove leading indentation to prevent Streamlit from interpreting HTML as a code block
-    prog_html = """<div class="summary-param-card">
-<h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Program Parameters</h2>
-<hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">"""
-    
-    for i in range(1, 4):
-        prog_html += f"""<div class="param-item">
-<div class="exercise-title" style="font-size:1.25rem; margin-bottom:0.4rem;">Exercise {i}</div>
-<div class="pill-row">
-<div class="pill-container"><div class="pill-label">Sets</div><div class="param-pill">3</div></div>
-<div class="pill-container"><div class="pill-label">Reps</div><div class="param-pill">5</div></div>
-<div class="pill-container"><div class="pill-label">Hold</div><div class="param-pill">5 sec</div></div>
-<div class="pill-container"><div class="pill-label">Side</div><div class="param-pill">Both <span style="font-size:0.7rem; margin-left:0.2rem;">▼</span></div></div>
-</div>
-</div>"""
-    prog_html += "</div>"
-    
-    start_date = (date.today() + timedelta(days=1)).strftime("%A, %d %B %Y")
-    next_app = st.session_state.patient_data.get("next_appointment", "[date]")
-    
-    clin_html = f"""<div class="summary-param-card">
-<h2 style="font-size:1.6rem; color:#1a1d27; margin-bottom:0.75rem; margin-top:0; font-weight:600;">Clinical Parameters</h2>
-<hr style="border:0; border-top: 1px solid #F0F2F7; margin-bottom: 1.5rem;">
-<div class="clinical-label" style="margin-top:0; color:#8E98B0; font-weight:500;">Pain Threshold</div>
-<div style="display:flex; align-items:center; font-size:1.15rem; color:#1a1d27; margin-bottom:2rem; font-weight:500;">
-Alert me if patient reports pain <div class="circle-pill" style="font-size:1.2rem; margin: 0 0.2rem;">8</div> <span style="color:#A5ADC1; margin-left:0.1rem;">/10</span>
-</div>
-<div class="clinical-label" style="color:#8E98B0; font-weight:500;">Program Start</div>
-<div class="date-pill" style="padding: 0.5rem 0; font-size:1.1rem;">
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-{start_date}
-</div>
-<div class="clinical-label" style="margin-top:2rem; color:#8E98B0; font-weight:500;">Next Appointment</div>
-<div class="date-pill" style="padding: 0.5rem 0; font-size:1.1rem;">
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1d27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-{next_app}
-</div>
-</div>"""
-    
-    st.markdown(f'<div class="summary-row">{prog_html}{clin_html}</div>', unsafe_allow_html=True)
+        st.markdown('<h2 style="text-align:center;">You finished your appointment and Dr Smith has completed the program configuration. I have created your exercise program.</h2>', unsafe_allow_html=True)
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     # Center the button under the two cards
@@ -1350,49 +1257,32 @@ def render_video_overlay(video_name, data):
             video_bytes = f.read()
         
         # Native Video Player
-        st.video(video_bytes, format="video/mp4", autoplay=True, loop=True, muted=True)
+        st.video(video_bytes, format="video/mp4", autoplay=st.session_state.get("video_started", False), loop=True, muted=True)
         
         # Action Bar
         st.divider()
-        col1, col2, col3 = st.columns([1.5, 0.2, 1])
-        
-        with col1:
-            if st.button("Mark as Complete ✓", type="primary", use_container_width=True):
-                st.session_state.video_completed = True
-                st.session_state.show_video_overlay = False
-                
-                # User bubble trigger
-                _trigger = "I have finished the exercise."
-                st.session_state.full_history.append({"role": "user", "content": _trigger})
-                st.session_state.messages.append({"role": "user", "content": _trigger})
-                
-                # Force the LLM to reply automatically to this trigger
-                st.session_state.force_llm_reply = True
-                
-                if st.session_state.get("current_video") == st.session_state.selected_videos[1]:
-                    st.session_state.in_session_step = "ex2_completed"
-                else:
-                    st.session_state.in_session_step = "ex1_completed"
-                st.rerun()
-                
-        with col3:
-            if st.button("Skip Exercise ⏭", use_container_width=True):
-                st.session_state.video_completed = False
-                st.session_state.show_video_overlay = False
-                
-                # User bubble trigger
-                _trigger = "I have skipped this exercise."
-                st.session_state.full_history.append({"role": "user", "content": _trigger})
-                st.session_state.messages.append({"role": "user", "content": _trigger})
-                
-                # Force the LLM to reply automatically to this trigger
-                st.session_state.force_llm_reply = True
-                
-                if st.session_state.get("current_video") == st.session_state.selected_videos[1]:
-                    st.session_state.in_session_step = "ex2_completed"
-                else:
-                    st.session_state.in_session_step = "ex1_completed"
-                st.rerun()
+        _, col_center, _ = st.columns([1, 2, 1])
+        with col_center:
+            if not st.session_state.get("video_started", False):
+                if st.button("Start ➔", type="primary", use_container_width=True):
+                    st.session_state.video_started = True
+                    st.rerun()
+            else:
+                if st.button("Start Check-In ➔", type="primary", use_container_width=True):
+                    st.session_state.video_completed = True
+                    st.session_state.show_video_overlay = False
+                    
+                    # User bubble trigger
+                    _trigger = "I am ready for the check-in."
+                    st.session_state.full_history.append({"role": "user", "content": _trigger})
+                    st.session_state.messages.append({"role": "user", "content": _trigger})
+                    
+                    # Force the LLM to reply automatically to this trigger
+                    st.session_state.force_llm_reply = True
+                    
+                    st.session_state.phase = "post_checkin"
+                    st.session_state.in_session_step = "done"
+                    st.rerun()
 
 
 # ── Main rendering logic ─────────────────────────────────────────────────────
