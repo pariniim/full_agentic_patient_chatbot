@@ -1054,7 +1054,7 @@ def render_header():
     div[data-testid="stVerticalBlock"] > div:has(.nav-marker) + div {
         position: sticky;
         top: 0;
-        z-index: 999;
+        z-index: 9500;
         background: #FAF6F2; /* matches app background */
         padding-top: 1rem;
         padding-bottom: 0.5rem;
@@ -1334,6 +1334,13 @@ if st.session_state.get("show_video_overlay") and st.session_state.get("current_
     render_video_overlay(st.session_state.current_video, st.session_state.get("overlay_data", {"title":"Exercise", "reps":0, "sets":0, "hold":0}))
     st.stop()
 
+# ── Render sticky progress header globally except for the first splash ──────
+_target = st.session_state.get("splash_target_phase", "onboarding")
+_is_first_splash = st.session_state.show_splash and _target == "onboarding"
+
+if not _is_first_splash:
+    render_header()
+
 # ── Splash screen ────────────────────────────────────────────────────────────
 if st.session_state.show_splash:
     target = st.session_state.get("splash_target_phase", "onboarding")
@@ -1419,7 +1426,7 @@ if st.session_state.show_splash:
 elif st.session_state.phase == "appointment_summary":
     render_appointment_summary()
 else:
-    render_header()
+    pass
     # \u2500\u2500 Render chat history \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     _logo_b64 = load_logo_b64()
     _avatar_html = (
