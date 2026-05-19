@@ -1038,11 +1038,16 @@ def render_header():
     
     for i, (p_id, p_label) in enumerate(zip(PHASES, PHASE_LABELS)):
         with cols[i]:
-            btn_type = "primary" if st.session_state.phase == p_id else "secondary"
+            # Highlight 'programme_selection' or 'appointment_summary' as the active 'Appointment' tab
+            is_active = (st.session_state.phase == p_id) or (p_id == "programme_selection" and st.session_state.phase == "appointment_summary")
+            btn_type = "primary" if is_active else "secondary"
             is_disabled = (p_id != "onboarding") and not onboarding_completed
             
             if st.button(p_label, key=f"nav_{p_id}", use_container_width=True, type=btn_type, disabled=is_disabled):
-                st.session_state.phase = p_id
+                if p_id == "programme_selection":
+                    st.session_state.phase = "appointment_summary"
+                else:
+                    st.session_state.phase = p_id
                 st.session_state.show_splash = False
                 st.rerun()
 
@@ -1759,8 +1764,8 @@ components.html(f"""
 </script>
 """, height=0)
 
-# ── Chat input (hidden during splash) ───────────────────────────────────────
-if not st.session_state.get("show_splash", True):
+# ── Chat input (hidden during splash and appointment summary) ─────────────────
+if not st.session_state.get("show_splash", True) and st.session_state.phase != "appointment_summary":
     user_input = st.chat_input("Type your message…")
 else:
     user_input = None
